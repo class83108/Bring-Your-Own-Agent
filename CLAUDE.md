@@ -78,25 +78,86 @@ print(f"處理訊息: {msg_id}")
    - 實作最小可行程式碼讓測試通過
    - 重構優化 (Refactor)
 
-### 功能規格範本
+### 功能規格文件 (Gherkin)
 
-```markdown
-# 功能名稱
+使用 **Gherkin** 語法撰寫功能規格，檔案放置於 `docs/features/*.feature`。
 
-## 目標
-簡述此功能要解決的問題
+#### 何時建立新的 Feature 檔案
+- **一個 Feature = 一個獨立的業務領域或功能模組**
+- 當功能足夠獨立且有明確的業務價值時，建立新檔案
+- 例如：`chat.feature`、`file_operations.feature`、`code_search.feature`
 
-## 使用者故事
-作為 [角色]，我想要 [功能]，以便 [價值]
+#### Feature 結構規範
 
-## 情境描述
-1. 使用者輸入 ...
-2. Agent 接收指令後 ...
-3. 系統回應 ...
+```gherkin
+# language: zh-TW
+Feature: 功能名稱
+  作為 [角色]
+  我想要 [功能]
+  以便 [價值]
 
-## 驗收條件
-- [ ] 條件一
-- [ ] 條件二
+  Background:
+    # 所有 Scenario 共用的前置條件（選用）
+    Given 系統已初始化
+
+  Rule: 業務規則描述
+    # Rule 用於將相關的 Scenario 分組
+    # 一個 Rule = 一條明確的業務規則
+
+    Scenario: 情境名稱
+      # 一個 Scenario = 一個具體的使用案例
+      # 應該只測試一個行為
+      Given 前置條件
+      When 執行動作
+      Then 預期結果
+
+    Scenario: 另一個情境
+      Given 前置條件
+      When 執行動作
+      Then 預期結果
+```
+
+#### Scenario 撰寫原則
+- **單一職責**: 每個 Scenario 只驗證一個行為
+- **獨立性**: Scenario 之間不應有依賴關係
+- **可讀性**: 使用領域語言，避免技術細節
+- **Given**: 描述初始狀態（前置條件）
+- **When**: 描述觸發的動作（只有一個）
+- **Then**: 描述預期結果（可驗證的斷言）
+
+#### Rule 撰寫原則
+- **業務導向**: 每個 Rule 對應一條業務規則
+- **分組功能**: 將驗證同一規則的 Scenario 放在一起
+- 若 Feature 簡單，可省略 Rule 直接寫 Scenario
+
+#### 範例
+
+```gherkin
+# language: zh-TW
+Feature: 對話功能
+  作為使用者
+  我想要與 Agent 進行對話
+  以便獲得程式開發上的協助
+
+  Rule: Agent 應回應使用者的訊息
+
+    Scenario: 使用者發送簡單問題
+      Given Agent 已啟動
+      When 使用者輸入 "什麼是 Python?"
+      Then Agent 應回傳包含 Python 說明的回應
+
+    Scenario: 使用者發送空白訊息
+      Given Agent 已啟動
+      When 使用者輸入空白訊息
+      Then Agent 應提示使用者輸入有效內容
+
+  Rule: 對話應保持上下文
+
+    Scenario: Agent 記住先前的對話
+      Given Agent 已啟動
+      And 使用者曾詢問 "Python 是什麼?"
+      When 使用者輸入 "它的優點是什麼?"
+      Then Agent 應根據 Python 的上下文回答
 ```
 
 ---
@@ -114,7 +175,7 @@ agent-demo/
 │   ├── conftest.py
 │   └── test_*.py
 ├── docs/
-│   └── features/        # 功能規格文件
+│   └── features/        # Gherkin 功能規格 (.feature)
 └── pyproject.toml
 ```
 
