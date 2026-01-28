@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent 聊天</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Agent 聊天</h1>
+      <button id="reset-btn" class="btn-reset">清除歷史</button>
+    </header>
+
+    <div id="messages" class="messages"></div>
+
+    <footer class="input-area">
+      <textarea
+        id="message-input"
+        placeholder="輸入訊息..."
+        rows="2"
+        autofocus
+      ></textarea>
+      <button id="send-btn" class="btn-send">發送</button>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

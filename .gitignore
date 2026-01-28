@@ -16,3 +16,8 @@ htmlcov/
 
 # pytest
 .pytest_cache/
+
+# 環境變數
+.env
+
+.
