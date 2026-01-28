@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -29,6 +30,7 @@ logger = logging.getLogger(__name__)
 # --- 配置 ---
 REDIS_URL = 'redis://localhost:6381'
 STATIC_DIR = 'static'
+IS_PRODUCTION = os.environ.get('ENV') == 'production'
 
 # --- 會話管理器（全局單例）---
 session_manager = SessionManager(redis_url=REDIS_URL)
@@ -151,6 +153,7 @@ async def chat_stream(
             value=sid,
             httponly=True,
             samesite='lax',
+            secure=IS_PRODUCTION,
         )
 
     return response
