@@ -603,3 +603,379 @@ textarea:disabled {
   text-align: center;
   padding: 16px;
 }
+
+/* ===========================================
+   響應式設計 (RWD)
+   =========================================== */
+
+/* === 平板裝置 (768px - 1024px) === */
+@media (max-width: 1024px) and (min-width: 768px) {
+  /* 調整檔案面板寬度 */
+  .file-panel {
+    width: 240px;
+    min-width: 180px;
+  }
+
+  /* 調整預覽面板寬度 */
+  .preview-panel {
+    width: 50%;
+    min-width: 250px;
+  }
+
+  /* 調整聊天氣泡最大寬度 */
+  .bubble {
+    max-width: 80%;
+  }
+
+  /* 調整 header 標題字體 */
+  header h1 {
+    font-size: 1.1rem;
+  }
+
+  /* 調整按鈕字體 */
+  .header-actions button {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+  }
+}
+
+/* === 遮罩層（僅在移動裝置顯示） === */
+.overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.overlay:not(.hidden) {
+  opacity: 1;
+}
+
+/* === 移動裝置 (< 768px) === */
+@media (max-width: 767px) {
+  /* 確保整體高度正確 */
+  html, body {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .app-container {
+    height: 100vh;
+    height: 100dvh; /* 動態視窗高度，適應移動瀏覽器地址欄 */
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 顯示遮罩層 */
+  .overlay {
+    display: block;
+  }
+
+  .overlay.hidden {
+    pointer-events: none;
+  }
+
+  .overlay:not(.hidden) {
+    pointer-events: auto;
+  }
+
+  /* Header 調整 */
+  header {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  header h1 {
+    font-size: 1rem;
+    width: 100%;
+    margin-bottom: 4px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .header-actions button {
+    flex: 1;
+    font-size: 0.75rem;
+    padding: 6px 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* 主內容區域改為垂直堆疊 */
+  .main-content {
+    flex-direction: column;
+    position: relative;
+    height: 100%;
+  }
+
+  /* 檔案面板改為覆蓋層模式 */
+  .file-panel {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80%;
+    max-width: 300px;
+    height: 100%;
+    z-index: 100;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .file-panel:not(.hidden) {
+    transform: translateX(0);
+  }
+
+  /* 預覽面板也改為覆蓋層模式 */
+  .preview-panel {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100%;
+    z-index: 101;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+    transform: translateX(100%);
+    transition: transform 0.3s ease;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* 預覽內容區域滾動 */
+  .preview-panel .preview-content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .preview-panel:not(.hidden) {
+    transform: translateX(0);
+  }
+
+  /* 聊天容器佔滿全寬 */
+  .chat-container {
+    width: 100%;
+    min-width: unset;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 聊天訊息區域調整 */
+  .messages {
+    padding: 12px;
+    gap: 10px;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* 聊天氣泡調整 */
+  .bubble {
+    max-width: 85%;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+
+  /* Markdown 內容調整 */
+  .message.assistant .bubble h1 {
+    font-size: 1.15rem;
+  }
+
+  .message.assistant .bubble h2 {
+    font-size: 1rem;
+  }
+
+  .message.assistant .bubble h3 {
+    font-size: 0.95rem;
+  }
+
+  .message.assistant .bubble code {
+    font-size: 0.85em;
+    padding: 2px 6px;
+  }
+
+  .message.assistant .bubble pre {
+    padding: 10px;
+    margin: 8px 0;
+    font-size: 0.8rem;
+  }
+
+  .message.assistant .bubble pre code {
+    font-size: 0.8rem;
+  }
+
+  .message.assistant .bubble table {
+    font-size: 0.8rem;
+  }
+
+  .message.assistant .bubble th,
+  .message.assistant .bubble td {
+    padding: 4px 6px;
+  }
+
+  /* 輸入區域調整 */
+  .input-area {
+    padding: 10px 12px;
+    gap: 6px;
+  }
+
+  textarea {
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    min-height: 40px;
+  }
+
+  .btn-send {
+    padding: 8px 16px;
+    font-size: 0.9rem;
+  }
+
+  /* 檔案樹調整 */
+  .file-tree {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .tree-item {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+
+  .tree-icon {
+    font-size: 1.1rem;
+  }
+
+  /* 面板標題調整 */
+  .panel-header {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+
+  .btn-icon {
+    font-size: 1.1rem;
+    padding: 6px;
+  }
+
+  /* 預覽內容調整 */
+  .preview-content code {
+    padding: 12px;
+    font-size: 0.75rem;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    overflow-x: hidden;
+  }
+
+  /* Diff 視圖調整 */
+  .simple-diff {
+    font-size: 10px;
+    padding: 6px;
+    overflow-x: hidden;
+  }
+
+  .simple-diff > div {
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    overflow-x: hidden;
+  }
+
+  .line-num {
+    width: 35px;
+    margin-right: 6px;
+    font-size: 9px;
+  }
+
+  /* 切換視圖按鈕調整 */
+  .btn-toggle-view {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+}
+
+/* === 極小螢幕裝置 (< 480px) === */
+@media (max-width: 479px) {
+  /* 進一步縮小標題 */
+  header h1 {
+    font-size: 0.9rem;
+  }
+
+  /* 按鈕更緊湊 */
+  .header-actions button {
+    font-size: 0.7rem;
+    padding: 5px 6px;
+  }
+
+  /* 聊天氣泡更寬 */
+  .bubble {
+    max-width: 90%;
+    padding: 7px 10px;
+    font-size: 0.85rem;
+  }
+
+  /* 輸入區域調整 */
+  textarea {
+    font-size: 0.85rem;
+    padding: 7px 9px;
+  }
+
+  .btn-send {
+    padding: 7px 12px;
+    font-size: 0.85rem;
+  }
+
+  /* 檔案面板更寬 */
+  .file-panel {
+    width: 85%;
+  }
+
+  /* Markdown 標題進一步縮小 */
+  .message.assistant .bubble h1 {
+    font-size: 1rem;
+  }
+
+  .message.assistant .bubble h2 {
+    font-size: 0.95rem;
+  }
+
+  .message.assistant .bubble h3 {
+    font-size: 0.9rem;
+  }
+
+  /* 預覽內容進一步調整 */
+  .preview-content code {
+    font-size: 0.7rem;
+    padding: 10px;
+  }
+
+  /* Diff 視圖進一步調整 */
+  .simple-diff {
+    font-size: 9px;
+    padding: 4px;
+    overflow-x: hidden;
+  }
+
+  .line-num {
+    width: 30px;
+    margin-right: 4px;
+    font-size: 8px;
+  }
+
+  /* 切換視圖按鈕進一步調整 */
+  .btn-toggle-view {
+    font-size: 0.7rem;
+    padding: 3px 6px;
+  }
+}

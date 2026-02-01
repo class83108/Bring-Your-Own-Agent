@@ -18,20 +18,17 @@ logger = logging.getLogger(__name__)
 MAX_OUTPUT_SIZE: int = 100 * 1024
 
 # 敏感資訊模式
+# 以下模式用於偵測並遮蔽命令輸出中的敏感資訊，非硬編碼憑證
 SENSITIVE_PATTERNS: list[tuple[str, str]] = [
     (r'\bsk-[a-zA-Z0-9]{20,}', '[OPENAI_API_KEY]'),  # OpenAI API key (至少 20 字元)
     (r'\bsk-ant-[a-zA-Z0-9-]{15,}', '[ANTHROPIC_API_KEY]'),  # Anthropic API key (至少 15 字元)
     (r'\bghp_[a-zA-Z0-9]{20,}', '[GITHUB_TOKEN]'),  # GitHub token
     (r'\bgho_[a-zA-Z0-9]{20,}', '[GITHUB_OAUTH]'),  # GitHub OAuth
     (r'\b(AWS|AKIA)[A-Z0-9]{16,}', '[AWS_ACCESS_KEY]'),  # AWS access key
-    (
-        r'password[=:]\s*["\']?([^"\'\s]+)',
-        'password=[REDACTED]',
-    ),  # nosonar - 正則表達式用於遮蔽密碼，非硬編碼憑證
-    (
-        r'token[=:]\s*["\']?([^"\'\s]+)',
-        'token=[REDACTED]',
-    ),  # nosonar - 正則表達式用於遮蔽 token，非硬編碼憑證
+    # 遮蔽 password 參數（用於過濾命令輸出，非實際憑證）
+    (r'password[=:]\s*["\']?([^"\'\s]+)', 'password=[REDACTED]'),  # nosec B105
+    # 遮蔽 token 參數（用於過濾命令輸出，非實際憑證）
+    (r'token[=:]\s*["\']?([^"\'\s]+)', 'token=[REDACTED]'),  # nosec B105
 ]
 
 # 危險命令模式（使用正則表達式）

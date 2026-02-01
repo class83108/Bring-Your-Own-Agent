@@ -22,6 +22,7 @@ const previewFilename = document.getElementById('preview-filename');
 const previewContent = document.getElementById('preview-content');
 const closePreviewBtn = document.getElementById('close-preview-btn');
 const toggleViewBtn = document.getElementById('toggle-view-btn');
+const overlay = document.getElementById('overlay');
 
 // === 狀態 ===
 let isSending = false;
@@ -325,6 +326,9 @@ function toggleFilePanel() {
   togglePanelBtn.classList.toggle('active', isPanelVisible);
   togglePanelBtn.textContent = isPanelVisible ? '隱藏檔案' : '顯示檔案';
 
+  // 控制遮罩層（僅在移動裝置生效）
+  updateOverlay();
+
   if (isPanelVisible) {
     loadFileTree();
   }
@@ -413,6 +417,9 @@ async function loadFileContent(path, filename) {
   previewFilename.textContent = filename;
   previewPanel.classList.remove('hidden');
   currentPreviewPath = path;
+
+  // 更新遮罩層狀態
+  updateOverlay();
 
   // 檢查是否有 diff 資訊
   const hasDiff = fileDiffs.has(path);
@@ -578,6 +585,30 @@ function closePreview() {
   previewPanel.classList.add('hidden');
   currentPreviewPath = null;
   currentViewMode = 'file';
+
+  // 更新遮罩層狀態
+  updateOverlay();
+}
+
+/**
+ * 更新遮罩層顯示狀態
+ * 當檔案面板或預覽面板在移動裝置上開啟時顯示遮罩
+ */
+function updateOverlay() {
+  const shouldShowOverlay = isPanelVisible || !previewPanel.classList.contains('hidden');
+  overlay.classList.toggle('hidden', !shouldShowOverlay);
+}
+
+/**
+ * 關閉所有面板（由遮罩層觸發）
+ */
+function closeAllPanels() {
+  if (isPanelVisible) {
+    toggleFilePanel();
+  }
+  if (!previewPanel.classList.contains('hidden')) {
+    closePreview();
+  }
 }
 
 /**
@@ -634,3 +665,6 @@ togglePanelBtn.addEventListener('click', toggleFilePanel);
 refreshTreeBtn.addEventListener('click', loadFileTree);
 closePreviewBtn.addEventListener('click', closePreview);
 toggleViewBtn.addEventListener('click', toggleView);
+
+// 遮罩層點擊事件（關閉所有面板）
+overlay.addEventListener('click', closeAllPanels);
