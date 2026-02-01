@@ -9,6 +9,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
+from agent_demo.tools.path_utils import validate_path as validate_path_base
+
 logger = logging.getLogger(__name__)
 
 # 檔案大小上限（1MB）
@@ -78,12 +80,8 @@ def validate_path(file_path: str, sandbox_root: Path) -> Path:
     Raises:
         PermissionError: 路徑在 sandbox 外或為敏感檔案
     """
-    resolved = (sandbox_root / file_path).resolve()
-
-    # 檢查路徑穿越
-    if not resolved.is_relative_to(sandbox_root.resolve()):
-        logger.warning('路徑穿越攻擊', extra={'path': file_path})
-        raise PermissionError(f'無法存取 sandbox 外的檔案: {file_path}')
+    # 使用共用的基礎路徑驗證
+    resolved = validate_path_base(file_path, sandbox_root)
 
     # 檢查敏感檔案
     if _is_sensitive_file(Path(file_path)):

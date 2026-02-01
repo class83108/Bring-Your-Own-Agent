@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from agent_demo.tools.bash import bash_handler
+from agent_demo.tools.file_list import list_files_handler
 from agent_demo.tools.file_read import read_file_handler
 from agent_demo.tools.registry import ToolRegistry
 
@@ -33,6 +34,9 @@ def create_default_registry(
 
     # 註冊 read_file 工具
     _register_read_file(registry, sandbox_root)
+
+    # 註冊 list_files 工具
+    _register_list_files(registry, sandbox_root)
 
     # 註冊 bash 工具
     _register_bash(registry, sandbox_root)
@@ -93,6 +97,86 @@ def _register_read_file(registry: ToolRegistry, sandbox_root: Path) -> None:
         },
         handler=_handler,
         file_param='path',
+    )
+
+
+def _register_list_files(registry: ToolRegistry, sandbox_root: Path) -> None:
+    """註冊 list_files 工具。
+
+    Args:
+        registry: 工具註冊表
+        sandbox_root: sandbox 根目錄
+    """
+
+    def _handler(
+        path: str = '.',
+        recursive: bool = False,
+        max_depth: int | None = None,
+        pattern: str | None = None,
+        exclude_dirs: list[str] | None = None,
+        show_hidden: bool = False,
+        show_details: bool = False,
+    ) -> dict[str, Any]:
+        """list_files handler 閉包，綁定 sandbox_root。"""
+        return list_files_handler(
+            path=path,
+            sandbox_root=sandbox_root,
+            recursive=recursive,
+            max_depth=max_depth,
+            pattern=pattern,
+            exclude_dirs=exclude_dirs,
+            show_hidden=show_hidden,
+            show_details=show_details,
+        )
+
+    registry.register(
+        name='list_files',
+        description="""列出目錄中的檔案和子目錄。
+
+        使用時機：
+        - 使用者要求查看專案結構
+        - 需要了解目錄內容再進行操作
+        - 尋找特定類型或模式的檔案
+        - 探索不熟悉的專案
+
+        回傳：檔案列表、目錄列表，以及可選的詳細資訊（大小、修改時間）。""",
+        parameters={
+            'type': 'object',
+            'properties': {
+                'path': {
+                    'type': 'string',
+                    'description': '目錄路徑（相對於 sandbox 根目錄，預設為當前目錄 "."）',
+                },
+                'recursive': {
+                    'type': 'boolean',
+                    'description': '是否遞迴列出所有子目錄中的檔案（預設 false）',
+                },
+                'max_depth': {
+                    'type': 'integer',
+                    'description': '最大遞迴深度（僅在 recursive=true 時有效，預設無限制）',
+                },
+                'pattern': {
+                    'type': 'string',
+                    'description': '檔案名稱模式，如 "*.py", "test_*.py"（預設顯示所有檔案）',
+                },
+                'exclude_dirs': {
+                    'type': 'array',
+                    'items': {'type': 'string'},
+                    'description': '要排除的目錄名稱列表，如 ["node_modules", ".git"]',
+                },
+                'show_hidden': {
+                    'type': 'boolean',
+                    'description': '是否顯示隱藏檔案（以 . 開頭的檔案，預設 false）',
+                },
+                'show_details': {
+                    'type': 'boolean',
+                    'description': '是否顯示詳細資訊（檔案大小、修改時間，預設 false）',
+                },
+            },
+            'required': [],
+        },
+        handler=_handler,
+        file_param=None,  # list_files 只讀取目錄結構，不需要檔案鎖定
     )
 
 
