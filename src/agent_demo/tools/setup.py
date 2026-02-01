@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from agent_demo.tools.bash import bash_handler
+from agent_demo.tools.file_edit import edit_file_handler
 from agent_demo.tools.file_list import list_files_handler
 from agent_demo.tools.file_read import read_file_handler
 from agent_demo.tools.registry import ToolRegistry
@@ -34,6 +35,9 @@ def create_default_registry(
 
     # 註冊 read_file 工具
     _register_read_file(registry, sandbox_root)
+
+    # 註冊 edit_file 工具
+    _register_edit_file(registry, sandbox_root)
 
     # 註冊 list_files 工具
     _register_list_files(registry, sandbox_root)
@@ -91,6 +95,82 @@ def _register_read_file(registry: ToolRegistry, sandbox_root: Path) -> None:
                 'end_line': {
                     'type': 'integer',
                     'description': '結束行號（可選，預設讀到檔尾）',
+                },
+            },
+            'required': ['path'],
+        },
+        handler=_handler,
+        file_param='path',
+    )
+
+
+def _register_edit_file(registry: ToolRegistry, sandbox_root: Path) -> None:
+    """註冊 edit_file 工具。
+
+    Args:
+        registry: 工具註冊表
+        sandbox_root: sandbox 根目錄
+    """
+
+    def _handler(
+        path: str,
+        old_content: str | None = None,
+        new_content: str | None = None,
+        create_if_missing: bool = False,
+        backup: bool = False,
+    ) -> dict[str, Any]:
+        """edit_file handler 閉包，綁定 sandbox_root。"""
+        return edit_file_handler(
+            path=path,
+            sandbox_root=sandbox_root,
+            old_content=old_content,
+            new_content=new_content,
+            create_if_missing=create_if_missing,
+            backup=backup,
+        )
+
+    registry.register(
+        name='edit_file',
+        description="""編輯或建立檔案內容。
+
+        使用時機：
+        - 修改程式碼（重新命名函數、新增方法、修復 bug）
+        - 建立新檔案
+        - 刪除特定程式碼片段
+        - 插入新的程式碼區塊
+
+        編輯方式：
+        - 使用精確的字串匹配替換（old_content -> new_content）
+        - 建立新檔案時設定 create_if_missing=true
+        - 可選擇性備份原始檔案
+
+        限制：
+        - old_content 必須在檔案中唯一存在（避免誤修改）
+        - 只能操作 sandbox 內的檔案
+
+        回傳：編輯結果（是否建立、是否修改、備份路徑）。""",
+        parameters={
+            'type': 'object',
+            'properties': {
+                'path': {
+                    'type': 'string',
+                    'description': '檔案路徑（相對於 sandbox 根目錄）',
+                },
+                'old_content': {
+                    'type': 'string',
+                    'description': '要搜尋的舊內容（編輯時必須提供，建立新檔案時省略）',
+                },
+                'new_content': {
+                    'type': 'string',
+                    'description': '要替換的新內容（省略表示刪除 old_content）',
+                },
+                'create_if_missing': {
+                    'type': 'boolean',
+                    'description': '若檔案不存在是否建立（預設 false）',
+                },
+                'backup': {
+                    'type': 'boolean',
+                    'description': '是否在編輯前備份原始檔案（預設 false）',
                 },
             },
             'required': ['path'],
