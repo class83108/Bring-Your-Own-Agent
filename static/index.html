@@ -48,7 +48,10 @@
       <aside id="preview-panel" class="preview-panel hidden">
         <div class="panel-header">
           <span id="preview-filename">檔案預覽</span>
-          <button id="close-preview-btn" class="btn-icon" title="關閉">&times;</button>
+          <div class="panel-header-actions">
+            <button id="toggle-view-btn" class="btn-icon btn-toggle-view hidden" title="切換視圖">切換</button>
+            <button id="close-preview-btn" class="btn-icon" title="關閉">&times;</button>
+          </div>
         </div>
         <pre class="preview-content"><code id="preview-content"></code></pre>
       </aside>

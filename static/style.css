@@ -146,6 +146,28 @@ header h1 {
   color: #333;
 }
 
+.panel-header-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.btn-toggle-view {
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  color: #1a73e8;
+  background: #e8f0fe;
+  border-radius: 4px;
+}
+
+.btn-toggle-view:hover {
+  background: #d2e3fc;
+}
+
+.btn-toggle-view.hidden {
+  display: none;
+}
+
 /* === 目錄樹 === */
 .file-tree {
   flex: 1;
@@ -506,4 +528,78 @@ textarea:disabled {
   line-height: 1.6;
   white-space: pre;
   overflow-x: auto;
+}
+
+/* === Diff 視圖樣式（輕量版本）=== */
+.preview-content.diff-view {
+  background: #fff;
+  padding: 0;
+}
+
+.simple-diff {
+  margin: 0;
+  padding: 8px;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  background: #fff;
+  overflow-x: auto;
+}
+
+.simple-diff > div {
+  margin: 0;
+  padding: 1px 4px;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.line-num {
+  display: inline-block;
+  width: 50px;
+  text-align: right;
+  margin-right: 12px;
+  color: #888;
+  user-select: none;
+  font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+}
+
+.diff-header {
+  color: #666;
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+.diff-hunk {
+  color: #0969da;
+  background: #ddf4ff;
+  font-weight: 600;
+}
+
+.diff-add {
+  color: #1a7f37;
+  background: #dafbe1;
+}
+
+.diff-add .line-num {
+  color: #1a7f37;
+}
+
+.diff-del {
+  color: #cf222e;
+  background: #ffebe9;
+}
+
+.diff-del .line-num {
+  color: #cf222e;
+}
+
+.diff-context {
+  color: #24292f;
+  background: #fff;
+}
+
+.diff-error {
+  color: #c62828;
+  text-align: center;
+  padding: 16px;
 }

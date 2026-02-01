@@ -4,7 +4,6 @@ const RESET_URL = '/api/chat/reset';
 const HISTORY_URL = '/api/chat/history';
 const FILES_TREE_URL = '/api/files/tree';
 const FILES_CONTENT_URL = '/api/files/content';
-const FILES_MODIFIED_URL = '/api/files/modified';
 
 // === Chat DOM 元素 ===
 const messagesEl = document.getElementById('messages');
@@ -22,13 +21,17 @@ const previewPanel = document.getElementById('preview-panel');
 const previewFilename = document.getElementById('preview-filename');
 const previewContent = document.getElementById('preview-content');
 const closePreviewBtn = document.getElementById('close-preview-btn');
+const toggleViewBtn = document.getElementById('toggle-view-btn');
 
 // === 狀態 ===
 let isSending = false;
 let modifiedFiles = new Set();
+let fileDiffs = new Map(); // 儲存檔案的 diff 資訊
 let isPanelVisible = false;
 let isComposing = false; // 追蹤輸入法組字狀態
 let isHistoryLoaded = false; // 追蹤歷史是否已載入
+let currentPreviewPath = null; // 當前預覽的檔案路徑
+let currentViewMode = 'file'; // 'file' 或 'diff'
 
 // === 初始化檢查 ===
 window.addEventListener('DOMContentLoaded', () => {
@@ -138,8 +141,6 @@ function createBubble(role, text = '') {
 
 // 將 Markdown 文字轉換為 HTML
 function renderMarkdown(text) {
-  console.log('[Markdown] 嘗試渲染，文字長度:', text.length);
-  console.log('[Markdown] 前 100 字元:', text.substring(0, 100));
 
   if (typeof marked === 'undefined') {
     console.error('[Markdown] marked 未載入，使用純文字');
@@ -183,8 +184,6 @@ function renderMarkdown(text) {
       throw new Error('無法找到 marked 的渲染方法');
     }
 
-    console.log('[Markdown] 渲染成功，HTML 長度:', html.length);
-    console.log('[Markdown] HTML 前 300 字元:', html.substring(0, 300));
     return html;
   } catch (e) {
     console.error('[Markdown] 渲染失敗:', e);
@@ -264,7 +263,6 @@ async function sendMessage() {
           if (accumulatedText) {
             const html = renderMarkdown(accumulatedText);
             assistantBubble.innerHTML = html;
-            console.log('[Done] 已設定 innerHTML');
           }
           // 重新整理檔案樹以檢查是否有修改
           if (isPanelVisible) {
@@ -275,22 +273,19 @@ async function sendMessage() {
           assistantBubble.parentElement.remove();
           createBubble('error', `錯誤 (${err.type}): ${err.message}`);
         } else if (evt.type === 'file_change') {
-          // 未來支援：即時標記修改的檔案
+          // 儲存檔案的 diff 資訊並標記為已修改
           const fileData = JSON.parse(evt.data);
+          fileDiffs.set(fileData.path, fileData.diff);
           markFileModified(fileData.path);
         }
       }
     }
 
     // 串流結束後，處理剩餘的 buffer
-    console.log('[Stream] 串流結束，剩餘 buffer 長度:', buffer.length);
     if (buffer.trim()) {
       const events = parseSSE(buffer);
-      console.log('[Stream] 剩餘 buffer 解析出事件數:', events.length);
       for (const evt of events) {
-        console.log('[Stream] 剩餘事件類型:', evt.type);
         if (evt.type === 'done') {
-          console.log('[Stream] 剩餘 buffer 中的 done 事件');
           if (accumulatedText) {
             const html = renderMarkdown(accumulatedText);
             assistantBubble.innerHTML = html;
@@ -307,15 +302,10 @@ async function sendMessage() {
     createBubble('error', `網路錯誤: ${err.message}`);
   } finally {
     // 確保最後一定會嘗試渲染 Markdown（如果還是純文字狀態）
-    console.log('[Finally] 進入 finally 區塊');
-    console.log('[Finally] accumulatedText 長度:', accumulatedText.length);
-    console.log('[Finally] textContent === accumulatedText:', assistantBubble && assistantBubble.textContent === accumulatedText);
-
     if (accumulatedText && assistantBubble && assistantBubble.textContent === accumulatedText) {
       console.log('[Finally] 條件符合，執行 renderMarkdown');
       const html = renderMarkdown(accumulatedText);
       assistantBubble.innerHTML = html;
-      console.log('[Finally] 已從 finally 設定 innerHTML');
     }
     setDisabled(false);
     inputEl.focus();
@@ -347,15 +337,10 @@ async function loadFileTree() {
   fileTree.innerHTML = '<div class="tree-empty">載入中...</div>';
 
   try {
-    const [treeRes, modifiedRes] = await Promise.all([
-      fetch(FILES_TREE_URL),
-      fetch(FILES_MODIFIED_URL),
-    ]);
-
+    const treeRes = await fetch(FILES_TREE_URL);
     const treeData = await treeRes.json();
-    const modifiedData = await modifiedRes.json();
 
-    modifiedFiles = new Set(modifiedData.modified_files || []);
+    // modifiedFiles 只從 file_change 事件更新（不再從 Redis 載入）
     renderTree(treeData.tree, fileTree);
   } catch (err) {
     fileTree.innerHTML = '<div class="tree-error">載入失敗，請稍後重試</div>';
@@ -426,9 +411,38 @@ function renderTree(items, container) {
  */
 async function loadFileContent(path, filename) {
   previewFilename.textContent = filename;
-  previewContent.textContent = '載入中...';
-  previewContent.className = '';
   previewPanel.classList.remove('hidden');
+  currentPreviewPath = path;
+
+  // 檢查是否有 diff 資訊
+  const hasDiff = fileDiffs.has(path);
+
+  // 顯示或隱藏切換按鈕
+  if (hasDiff) {
+    toggleViewBtn.classList.remove('hidden');
+    // 預設顯示 diff 視圖
+    currentViewMode = 'diff';
+    updateToggleViewButton();
+    showDiffView(path, fileDiffs.get(path));
+  } else {
+    toggleViewBtn.classList.add('hidden');
+    currentViewMode = 'file';
+    await showFileContent(path);
+  }
+}
+
+/**
+ * 顯示完整檔案內容
+ */
+async function showFileContent(path) {
+  // 顯示原始檔案內容 - 需要確保清除之前的 diff 視圖
+  const previewContentEl = document.querySelector('.preview-content');
+  previewContentEl.className = 'preview-content'; // 重置 class，移除 diff-view
+  previewContentEl.innerHTML = '<code id="preview-content"></code>'; // 重建結構
+
+  // 重新取得 code 元素的參照
+  const codeEl = document.getElementById('preview-content');
+  codeEl.textContent = '載入中...';
 
   try {
     const res = await fetch(`${FILES_CONTENT_URL}?path=${encodeURIComponent(path)}`);
@@ -440,15 +454,120 @@ async function loadFileContent(path, filename) {
 
     const data = await res.json();
 
-    previewContent.textContent = data.content;
+    codeEl.textContent = data.content;
 
     // 設定語言 class 並套用語法高亮
     if (data.language && data.language !== 'plaintext') {
-      previewContent.className = `language-${data.language}`;
-      hljs.highlightElement(previewContent);
+      codeEl.className = `language-${data.language}`;
+      hljs.highlightElement(codeEl);
     }
   } catch (err) {
-    previewContent.textContent = `無法載入檔案: ${err.message}`;
+    codeEl.textContent = `無法載入檔案: ${err.message}`;
+  }
+}
+
+/**
+ * 顯示 diff 視圖（輕量版本，不使用 Diff2Html）
+ */
+function showDiffView(path, diffText) {
+  // 清空預覽內容並設定樣式
+  const previewContentEl = document.querySelector('.preview-content');
+  previewContentEl.innerHTML = '';
+  previewContentEl.className = 'preview-content diff-view';
+
+  // 建立 diff 容器
+  const diffContainer = document.createElement('pre');
+  diffContainer.className = 'simple-diff';
+  previewContentEl.appendChild(diffContainer);
+
+  try {
+    // 解析並渲染 diff，追蹤行號
+    const lines = diffText.split('\n');
+    let oldLineNum = 0;
+    let newLineNum = 0;
+
+    const html = lines.map(line => {
+      // 判斷行的類型
+      if (line.startsWith('@@')) {
+        // Hunk header - 解析行號
+        const match = line.match(/@@ -(\d+),?\d* \+(\d+),?\d* @@/);
+        if (match) {
+          oldLineNum = parseInt(match[1]);
+          newLineNum = parseInt(match[2]);
+        }
+        return `<div class="diff-hunk">${escapeHtml(line)}</div>`;
+      } else if (line.startsWith('+') && !line.startsWith('+++')) {
+        // 新增行
+        const lineNumStr = String(newLineNum).padStart(4, ' ');
+        newLineNum++;
+        return `<div class="diff-add"><span class="line-num">${lineNumStr}</span>${escapeHtml(line)}</div>`;
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        // 刪除行
+        const lineNumStr = String(oldLineNum).padStart(4, ' ');
+        oldLineNum++;
+        return `<div class="diff-del"><span class="line-num">${lineNumStr}</span>${escapeHtml(line)}</div>`;
+      } else if (line.startsWith('diff ') || line.startsWith('index ') ||
+                 line.startsWith('--- ') || line.startsWith('+++ ')) {
+        // 檔案 header
+        return `<div class="diff-header">${escapeHtml(line)}</div>`;
+      } else if (line.startsWith(' ')) {
+        // Context 行
+        const lineNumStr = String(oldLineNum).padStart(4, ' ');
+        oldLineNum++;
+        newLineNum++;
+        return `<div class="diff-context"><span class="line-num">${lineNumStr}</span>${escapeHtml(line)}</div>`;
+      } else {
+        // 其他行（空行等）
+        return `<div class="diff-context">${escapeHtml(line)}</div>`;
+      }
+    }).join('');
+
+    diffContainer.innerHTML = html;
+    console.log('[Diff] 輕量 Diff 渲染成功:', path);
+  } catch (err) {
+    console.error('[Diff] Diff 渲染失敗:', err);
+    previewContentEl.innerHTML = `<div class="diff-error">無法渲染 diff: ${err.message}</div>`;
+  }
+}
+
+/**
+ * HTML 跳脫函數
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+/**
+ * 切換視圖模式（Diff / 完整檔案）
+ */
+function toggleView() {
+  if (!currentPreviewPath || !fileDiffs.has(currentPreviewPath)) {
+    return;
+  }
+
+  if (currentViewMode === 'diff') {
+    currentViewMode = 'file';
+    showFileContent(currentPreviewPath);
+  } else {
+    currentViewMode = 'diff';
+    showDiffView(currentPreviewPath, fileDiffs.get(currentPreviewPath));
+  }
+
+  updateToggleViewButton();
+}
+
+/**
+ * 更新切換視圖按鈕的文字
+ */
+function updateToggleViewButton() {
+  if (currentViewMode === 'diff') {
+    toggleViewBtn.textContent = '完整檔案';
+    toggleViewBtn.title = '查看完整檔案內容';
+  } else {
+    toggleViewBtn.textContent = '變更';
+    toggleViewBtn.title = '查看變更內容';
   }
 }
 
@@ -457,6 +576,8 @@ async function loadFileContent(path, filename) {
  */
 function closePreview() {
   previewPanel.classList.add('hidden');
+  currentPreviewPath = null;
+  currentViewMode = 'file';
 }
 
 /**
@@ -512,3 +633,4 @@ resetBtn.addEventListener('click', async () => {
 togglePanelBtn.addEventListener('click', toggleFilePanel);
 refreshTreeBtn.addEventListener('click', loadFileTree);
 closePreviewBtn.addEventListener('click', closePreview);
+toggleViewBtn.addEventListener('click', toggleView);

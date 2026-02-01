@@ -203,8 +203,21 @@ def read_file_handler(
 
     logger.info('檔案讀取完成', extra={'path': path, 'language': language})
 
+    # 建立 SSE 事件資料
+    sse_events = [
+        {
+            'type': 'file_open',
+            'data': {
+                'path': path,
+                'content': content,
+                'language': language,
+            },
+        }
+    ]
+
     return {
         'path': path,
         'content': content,
         'language': language,
+        'sse_events': sse_events,
     }

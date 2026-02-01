@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import difflib
 import logging
 import shutil
 from pathlib import Path
@@ -70,7 +71,7 @@ def _create_file(resolved_path: Path, path: str, content: str) -> dict[str, Any]
         content: 檔案內容
 
     Returns:
-        包含 path、created 的字典
+        包含 path、created、sse_events 的字典
 
     Raises:
         FileExistsError: 檔案已存在
@@ -88,9 +89,24 @@ def _create_file(resolved_path: Path, path: str, content: str) -> dict[str, Any]
 
     logger.info('檔案建立完成', extra={'path': path})
 
+    # 產生 unified diff（新建檔案，所有行都是新增）
+    diff = _generate_diff('', content, path)
+
+    # 建立 SSE 事件
+    sse_events = [
+        {
+            'type': 'file_change',
+            'data': {
+                'path': path,
+                'diff': diff,
+            },
+        }
+    ]
+
     return {
         'path': path,
         'created': True,
+        'sse_events': sse_events,
     }
 
 
@@ -160,15 +176,56 @@ def _edit_file(
 
     logger.info('檔案編輯完成', extra={'path': path, 'backup': backup_path})
 
+    # 產生 unified diff
+    diff = _generate_diff(original_content, new_file_content, path)
+
+    # 建立 SSE 事件
+    sse_events = [
+        {
+            'type': 'file_change',
+            'data': {
+                'path': path,
+                'diff': diff,
+            },
+        }
+    ]
+
     result: dict[str, Any] = {
         'path': path,
         'modified': True,
+        'sse_events': sse_events,
     }
 
     if backup_path:
         result['backup_path'] = backup_path
 
     return result
+
+
+def _generate_diff(old_content: str, new_content: str, file_path: str) -> str:
+    """產生 unified diff 格式的差異。
+
+    Args:
+        old_content: 舊內容（空字串表示新建檔案）
+        new_content: 新內容
+        file_path: 檔案路徑（用於 diff 標頭）
+
+    Returns:
+        unified diff 格式的字串
+    """
+    old_lines = old_content.splitlines(keepends=True)
+    new_lines = new_content.splitlines(keepends=True)
+
+    # 使用 difflib 產生 unified diff
+    diff_lines = difflib.unified_diff(
+        old_lines,
+        new_lines,
+        fromfile=f'a/{file_path}' if old_content else '/dev/null',
+        tofile=f'b/{file_path}',
+        lineterm='',
+    )
+
+    return '\n'.join(diff_lines)
 
 
 def _backup_file(resolved_path: Path, original_path: str) -> str:

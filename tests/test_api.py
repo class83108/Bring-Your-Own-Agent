@@ -559,3 +559,188 @@ class TestChatHistory:
         assert messages[1]['content'] == '讓我先讀取檔案'
         assert messages[2]['role'] == 'assistant'
         assert messages[2]['content'] == '這個檔案包含一個test 函數'
+
+
+class TestFileEventStreaming:
+    """測試檔案事件 SSE 推送 — 對應 Rule: 工具執行時應推送 SSE 事件"""
+
+    @pytest.mark.asyncio
+    async def test_stream_chat_emits_file_open_event(self) -> None:
+        """_stream_chat 應推送工具回傳的 file_open 事件。
+
+        Given Agent 執行 read_file 工具
+        When 工具回傳包含 sse_events 的結果
+        Then SSE 串流應包含 file_open 事件
+        """
+        mock_session = _make_mock_session_manager()
+        tokens = ['檔案內容是', '...']
+
+        # 模擬 Agent 執行工具後的 conversation
+        conversation_after_stream = [
+            {'role': 'user', 'content': '讀取 main.py'},
+            {
+                'role': 'assistant',
+                'content': [
+                    {'type': 'text', 'text': '好的'},
+                    {
+                        'type': 'tool_use',
+                        'id': 'tool_1',
+                        'name': 'read_file',
+                        'input': {'path': 'main.py'},
+                    },
+                ],
+            },
+            {
+                'role': 'user',
+                'content': [
+                    {
+                        'type': 'tool_result',
+                        'tool_use_id': 'tool_1',
+                        'content': json.dumps(
+                            {
+                                'path': 'main.py',
+                                'content': 'print("hello")',
+                                'language': 'python',
+                                'sse_events': [
+                                    {
+                                        'type': 'file_open',
+                                        'data': {
+                                            'path': 'main.py',
+                                            'content': 'print("hello")',
+                                            'language': 'python',
+                                        },
+                                    }
+                                ],
+                            }
+                        ),
+                    }
+                ],
+            },
+            {'role': 'assistant', 'content': '檔案內容是...'},
+        ]
+
+        with (
+            patch('agent_demo.main.session_manager', mock_session),
+            patch('agent_demo.main.Agent') as MockAgent,
+        ):
+            instance = MagicMock()
+
+            # 模擬 stream_message 執行後更新 conversation
+            async def _mock_stream_with_side_effect(msg: str) -> AsyncIterator[str]:
+                for token in tokens:
+                    yield token
+                # 執行後更新 conversation
+                instance.conversation = conversation_after_stream
+
+            instance.stream_message = _mock_stream_with_side_effect
+            instance.conversation = []
+            MockAgent.return_value = instance
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url='http://test'
+            ) as client:
+                response = await client.post(
+                    STREAM_URL,
+                    json={'message': '讀取 main.py'},
+                    cookies=SESSION_COOKIE,
+                )
+
+        assert response.status_code == 200
+        events = parse_sse(response.text)
+
+        # 驗證包含 file_open 事件
+        file_open_events = [e for e in events if e['type'] == 'file_open']
+        assert len(file_open_events) == 1
+        assert file_open_events[0]['data']['path'] == 'main.py'
+        assert file_open_events[0]['data']['content'] == 'print("hello")'
+
+    @pytest.mark.asyncio
+    async def test_stream_chat_emits_file_change_event(self) -> None:
+        """_stream_chat 應推送工具回傳的 file_change 事件。
+
+        Given Agent 執行 edit_file 工具
+        When 工具回傳包含 sse_events 的結果
+        Then SSE 串流應包含 file_change 事件與 diff
+        """
+        mock_session = _make_mock_session_manager()
+        tokens = ['已修改']
+
+        diff_text = '--- a/main.py\n+++ b/main.py\n@@ -1 +1 @@\n-old\n+new'
+
+        conversation_after_stream = [
+            {'role': 'user', 'content': '修改檔案'},
+            {
+                'role': 'assistant',
+                'content': [
+                    {
+                        'type': 'tool_use',
+                        'id': 'tool_1',
+                        'name': 'edit_file',
+                        'input': {
+                            'path': 'main.py',
+                            'old_content': 'old',
+                            'new_content': 'new',
+                        },
+                    }
+                ],
+            },
+            {
+                'role': 'user',
+                'content': [
+                    {
+                        'type': 'tool_result',
+                        'tool_use_id': 'tool_1',
+                        'content': json.dumps(
+                            {
+                                'path': 'main.py',
+                                'modified': True,
+                                'sse_events': [
+                                    {
+                                        'type': 'file_change',
+                                        'data': {
+                                            'path': 'main.py',
+                                            'diff': diff_text,
+                                        },
+                                    }
+                                ],
+                            }
+                        ),
+                    }
+                ],
+            },
+            {'role': 'assistant', 'content': '已修改'},
+        ]
+
+        with (
+            patch('agent_demo.main.session_manager', mock_session),
+            patch('agent_demo.main.Agent') as MockAgent,
+        ):
+            instance = MagicMock()
+
+            # 模擬 stream_message 執行後更新 conversation
+            async def _mock_stream_with_side_effect(_msg: str) -> AsyncIterator[str]:
+                for token in tokens:
+                    yield token
+                instance.conversation = conversation_after_stream
+
+            instance.stream_message = _mock_stream_with_side_effect
+            instance.conversation = []
+            MockAgent.return_value = instance
+
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url='http://test'
+            ) as client:
+                response = await client.post(
+                    STREAM_URL,
+                    json={'message': '修改檔案'},
+                    cookies=SESSION_COOKIE,
+                )
+
+        assert response.status_code == 200
+        events = parse_sse(response.text)
+
+        # 驗證包含 file_change 事件
+        file_change_events = [e for e in events if e['type'] == 'file_change']
+        assert len(file_change_events) == 1
+        assert file_change_events[0]['data']['path'] == 'main.py'
+        assert file_change_events[0]['data']['diff'] == diff_text

@@ -120,6 +120,32 @@ class TestReadFile:
         assert result['content'] == ''
         assert result['path'] == 'empty.txt'
 
+    def test_read_file_returns_sse_events(self, read_file: Any) -> None:
+        """Scenario: 讀取檔案時回傳 SSE 事件資料。
+
+        Given 存在檔案 "src/main.py"
+        When 使用者要求讀取該檔案
+        Then 回傳結果應包含 sse_events
+        And sse_events 應包含 file_open 事件
+        And 事件資料應包含路徑、內容、語言
+        """
+        result = read_file('src/main.py')
+
+        # 驗證包含 sse_events
+        assert 'sse_events' in result
+        assert isinstance(result['sse_events'], list)
+        assert len(result['sse_events']) == 1
+
+        # 驗證事件類型
+        event = result['sse_events'][0]
+        assert event['type'] == 'file_open'
+
+        # 驗證事件資料
+        event_data = event['data']
+        assert event_data['path'] == 'src/main.py'
+        assert event_data['content'] == "def hello():\n    print('world')\n"
+        assert event_data['language'] == 'python'
+
 
 # =============================================================================
 # Rule: Agent 應正確處理各種檔案類型

@@ -47,7 +47,7 @@ class SessionManager:
         )
 
     def _key(self, session_id: str) -> str:
-        """生成 Redis key。"""
+        """生成對話歷史的 Redis key。"""
         return _KEY_TEMPLATE.format(session_id=session_id)
 
     async def load(self, session_id: str) -> list[MessageParam]:

@@ -288,3 +288,73 @@ class TestEditSecurity:
                 new_content='malicious content',
                 create_if_missing=True,
             )
+
+
+# =============================================================================
+# Rule: 編輯檔案時應回傳 SSE 事件與 diff
+# =============================================================================
+
+
+class TestFileEditSSEEvents:
+    """測試編輯檔案時回傳 SSE 事件資料。"""
+
+    def test_edit_file_returns_sse_events_with_diff(self, edit_file: Any) -> None:
+        """Scenario: 編輯檔案時回傳 SSE 事件與 diff。
+
+        Given 檔案 "src/main.py" 包含舊內容
+        When 使用者要求編輯檔案
+        Then 回傳結果應包含 sse_events
+        And sse_events 應包含 file_change 事件
+        And 事件資料應包含路徑與 unified diff
+        """
+        result = edit_file(
+            path='src/main.py',
+            old_content='def old_function():',
+            new_content='def new_function():',
+        )
+
+        # 驗證包含 sse_events
+        assert 'sse_events' in result
+        assert isinstance(result['sse_events'], list)
+        assert len(result['sse_events']) == 1
+
+        # 驗證事件類型
+        event = result['sse_events'][0]
+        assert event['type'] == 'file_change'
+
+        # 驗證事件資料
+        event_data = event['data']
+        assert event_data['path'] == 'src/main.py'
+        assert 'diff' in event_data
+
+        # 驗證 diff 格式（unified diff）
+        diff = event_data['diff']
+        assert '--- ' in diff
+        assert '+++ ' in diff
+        assert '-def old_function():' in diff
+        assert '+def new_function():' in diff
+
+    def test_create_file_returns_sse_events_with_diff(self, edit_file: Any) -> None:
+        """Scenario: 建立新檔案時回傳 SSE 事件與 diff。
+
+        Given 檔案 "src/new.py" 不存在
+        When 使用者要求建立新檔案
+        Then 回傳結果應包含 sse_events
+        And diff 應顯示所有內容為新增
+        """
+        result = edit_file(
+            path='src/new.py',
+            new_content='def hello():\n    print("world")\n',
+            create_if_missing=True,
+        )
+
+        # 驗證包含 sse_events
+        assert 'sse_events' in result
+        event = result['sse_events'][0]
+        assert event['type'] == 'file_change'
+
+        # 驗證 diff 顯示為新增
+        diff = event['data']['diff']
+        assert '--- ' in diff or '--- /dev/null' in diff
+        assert '+def hello():' in diff
+        assert '+    print("world")' in diff
