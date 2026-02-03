@@ -29,7 +29,8 @@ class TestSmoke:
 
         chunks: list[str] = []
         async for chunk in agent.stream_message('請回答 "OK"'):
-            chunks.append(chunk)
+            if isinstance(chunk, str):
+                chunks.append(chunk)
 
         response = ''.join(chunks)
         assert len(response) > 0
@@ -46,7 +47,8 @@ class TestSmoke:
         # 第二輪
         chunks: list[str] = []
         async for chunk in agent.stream_message('我剛才說我的名字是什麼？'):
-            chunks.append(chunk)
+            if isinstance(chunk, str):
+                chunks.append(chunk)
 
         response = ''.join(chunks)
         # 驗證結構
@@ -60,7 +62,8 @@ class TestSmoke:
 
         chunks: list[str] = []
         async for chunk in agent.stream_message('請用 50 個字介紹 Python'):
-            chunks.append(chunk)
+            if isinstance(chunk, str):
+                chunks.append(chunk)
 
         # 應該收到多個 chunk（不只是一個大塊）
         assert len(chunks) > 1

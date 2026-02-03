@@ -9,7 +9,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
-from typing import Any  # 用於 client 類型
+from typing import Any, cast  # 用於 client 類型
 
 import anthropic
 from anthropic import APIConnectionError, APIStatusError, AuthenticationError
@@ -19,6 +19,40 @@ from agent_demo.tools.registry import ToolRegistry
 from agent_demo.usage_monitor import UsageMonitor
 
 logger = logging.getLogger(__name__)
+
+# 工具摘要的最大長度
+_SUMMARY_MAX_LEN: int = 120
+
+# 工具名稱與摘要格式對應
+_TOOL_SUMMARY_MAP: dict[str, tuple[str, str]] = {
+    'read_file': ('讀取檔案', 'path'),
+    'edit_file': ('編輯檔案', 'path'),
+    'list_files': ('列出檔案', 'path'),
+    'bash': ('執行命令', 'command'),
+    'grep_search': ('搜尋程式碼', 'pattern'),
+}
+
+
+def get_tool_summary(tool_name: str, tool_input: dict[str, Any]) -> str:
+    """根據工具名稱與參數產生人類可讀的摘要。
+
+    Args:
+        tool_name: 工具名稱
+        tool_input: 工具參數
+
+    Returns:
+        人類可讀的摘要字串
+    """
+    if tool_name in _TOOL_SUMMARY_MAP:
+        label, param_key = _TOOL_SUMMARY_MAP[tool_name]
+        value = str(tool_input.get(param_key, ''))
+        if len(value) > _SUMMARY_MAX_LEN:
+            value = value[:_SUMMARY_MAX_LEN] + '...'
+        return f'{label} {value}'
+
+    # 未知工具：顯示工具名稱
+    return f'使用工具 {tool_name}'
+
 
 # 預設配置
 DEFAULT_MODEL = 'claude-sonnet-4-20250514'
@@ -97,16 +131,60 @@ class Agent:
         self.conversation = []
         logger.debug('對話歷史已重設')
 
-    def _build_stream_kwargs(self) -> dict[str, Any]:
+    def _prepare_messages_with_cache(self) -> list[dict[str, Any]]:
+        """準備帶有緩存控制的訊息列表。
+
+        在最後一個 message 的最後一個 content block 添加 cache_control，
+        以啟用 prompt caching 優化。不修改原始 self.conversation。
+
+        Returns:
+            帶有 cache_control 的訊息列表副本
+        """
+        if not self.conversation:
+            return []
+
+        # 深拷貝整個 conversation（確保不修改原始資料）
+        import copy
+
+        # deepcopy 回傳型別仍為 list[MessageParam]（TypedDict），
+        # 但實際上已是純 dict，後續需要動態添加 cache_control 欄位，
+        # 透過 Any 中轉為 list[dict[str, Any]] 以繞過 TypedDict 的欄位限制
+        messages_raw: Any = copy.deepcopy(self.conversation)
+        messages: list[dict[str, Any]] = messages_raw
+
+        # 取得最後一個 message
+        last_msg = messages[-1]
+        content = last_msg.get('content')
+
+        if isinstance(content, str):
+            # 字串格式 → 轉換為 text block 格式並添加 cache_control
+            last_msg['content'] = [
+                {
+                    'type': 'text',
+                    'text': content,
+                    'cache_control': {'type': 'ephemeral'},
+                }
+            ]
+        elif isinstance(content, list) and content:
+            # 列表格式 → 在最後一個 block 添加 cache_control
+            last_block = cast(dict[str, Any], content[-1])
+            last_block['cache_control'] = {'type': 'ephemeral'}
+
+        return messages
+
+    def build_stream_kwargs(self) -> dict[str, Any]:
         """建立 messages.stream() 的參數。
 
         Returns:
             API 呼叫參數字典
         """
+        # 準備帶有 cache_control 的 messages
+        messages = self._prepare_messages_with_cache()
+
         # 複製固定參數 + 加入動態 messages
         return {
             **self._base_kwargs,
-            'messages': self.conversation,  # 每次迴圈都會變化
+            'messages': messages,
         }
 
     async def _execute_tool_calls(
@@ -215,11 +293,12 @@ class Agent:
 
     async def _stream_with_tool_loop(
         self,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[str | dict[str, Any]]:
         """執行串流迴圈，支援工具調用。
 
         Yields:
-            回應的每個 token
+            str: 回應的每個 token
+            dict: 事件通知（tool_call、preamble_end）
 
         Raises:
             各種 API 錯誤（由 _handle_stream_error 處理）
@@ -228,7 +307,7 @@ class Agent:
 
         try:
             while True:
-                kwargs = self._build_stream_kwargs()
+                kwargs = self.build_stream_kwargs()
 
                 async with self.client.messages.stream(**kwargs) as stream:
                     async for text in stream.text_stream:
@@ -257,8 +336,77 @@ class Agent:
                     )
                     break
 
-                # 執行工具並將結果加入對話歷史
-                tool_results = await self._execute_tool_calls(final_message.content)
+                # 標記 preamble 結束（僅在有文字時）
+                if response_parts:
+                    yield {'type': 'preamble_end', 'data': {}}
+
+                # 執行工具並產生事件
+                tool_results: list[ToolResultBlockParam] = []
+                for block in final_message.content:
+                    if block.type != 'tool_use':
+                        continue
+
+                    summary = get_tool_summary(block.name, block.input)
+                    logger.info('執行工具', extra={'tool_name': block.name, 'tool_id': block.id})
+
+                    # 通知：工具開始執行
+                    yield {
+                        'type': 'tool_call',
+                        'data': {
+                            'name': block.name,
+                            'status': 'started',
+                            'summary': summary,
+                        },
+                    }
+
+                    try:
+                        assert self.tool_registry is not None
+                        result = await self.tool_registry.execute(block.name, block.input)
+                        result_content = (
+                            json.dumps(result, ensure_ascii=False)
+                            if isinstance(result, dict)
+                            else str(result)
+                        )
+                        tool_results.append(
+                            ToolResultBlockParam(
+                                type='tool_result',
+                                tool_use_id=block.id,
+                                content=result_content,
+                            )
+                        )
+                        # 通知：工具執行完成
+                        yield {
+                            'type': 'tool_call',
+                            'data': {
+                                'name': block.name,
+                                'status': 'completed',
+                                'summary': summary,
+                            },
+                        }
+                    except Exception as e:
+                        logger.warning(
+                            '工具執行失敗',
+                            extra={'tool_name': block.name, 'error': str(e)},
+                        )
+                        tool_results.append(
+                            ToolResultBlockParam(
+                                type='tool_result',
+                                tool_use_id=block.id,
+                                content=str(e),
+                                is_error=True,
+                            )
+                        )
+                        # 通知：工具執行失敗
+                        yield {
+                            'type': 'tool_call',
+                            'data': {
+                                'name': block.name,
+                                'status': 'failed',
+                                'summary': summary,
+                                'error': str(e),
+                            },
+                        }
+
                 self.conversation.append(
                     {
                         'role': 'user',
@@ -282,7 +430,7 @@ class Agent:
     async def stream_message(
         self,
         content: str,
-    ) -> AsyncIterator[str]:
+    ) -> AsyncIterator[str | dict[str, Any]]:
         """以串流方式發送訊息並逐步取得回應。
 
         支援工具調用迴圈：當 Claude 回傳 tool_use 時，
@@ -292,7 +440,8 @@ class Agent:
             content: 使用者訊息內容
 
         Yields:
-            回應的每個 token
+            str: 回應的每個 token
+            dict: 事件通知（tool_call、preamble_end）
 
         Raises:
             ValueError: 訊息為空白

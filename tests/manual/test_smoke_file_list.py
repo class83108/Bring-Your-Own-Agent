@@ -64,7 +64,8 @@ class TestSmokeFileList:
 
         chunks: list[str] = []
         async for chunk in agent.stream_message('請列出專案根目錄的檔案'):
-            chunks.append(chunk)
+            if isinstance(chunk, str):
+                chunks.append(chunk)
 
         response = ''.join(chunks)
 
@@ -86,7 +87,8 @@ class TestSmokeFileList:
 
         chunks: list[str] = []
         async for chunk in agent.stream_message('請列出所有的 Python 檔案'):
-            chunks.append(chunk)
+            if isinstance(chunk, str):
+                chunks.append(chunk)
 
         response = ''.join(chunks)
 

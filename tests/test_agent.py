@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -132,10 +132,11 @@ def _get_assistant_text(conversation_entry: Any) -> str:
 
 
 async def collect_stream(agent: Agent, message: str) -> str:
-    """收集串流回應並返回完整文字。"""
+    """收集串流回應並返回完整文字（忽略事件）。"""
     chunks: list[str] = []
     async for chunk in agent.stream_message(message):
-        chunks.append(chunk)
+        if isinstance(chunk, str):
+            chunks.append(chunk)
     return ''.join(chunks)
 
 
@@ -384,7 +385,8 @@ class TestStreamingResponse:
         received: list[str] = []
         with pytest.raises(ConnectionError) as exc_info:
             async for chunk in agent.stream_message('測試'):
-                received.append(chunk)
+                if isinstance(chunk, str):
+                    received.append(chunk)
 
         # Assert - 應收到部分回應且被保留
         assert received == ['這是部分', '回應']
@@ -534,3 +536,170 @@ class TestToolUseLoop:
 
         # Assert - 最終仍有回應
         assert result == '找不到該檔案。'
+
+
+# =============================================================================
+# Prompt Caching Tests (根據 agent_core.feature Rule: Prompt Caching)
+# =============================================================================
+
+
+class TestPromptCaching:
+    """測試 Prompt Caching 功能。
+
+    對應規格: docs/features/agent_core.feature
+    Rule: Agent 應使用 Prompt Caching 優化 API 呼叫
+    """
+
+    def test_add_cache_control_to_last_message(self, mock_client: MagicMock) -> None:
+        """Scenario: 在對話歷史最後添加緩存斷點。
+
+        Given Agent 已有對話歷史
+        When Agent 建立 API 請求參數
+        Then 對話歷史的最後一個 message 應包含 cache_control
+        And cache_control 類型應為 ephemeral
+        """
+        # Arrange
+        config = AgentConfig(system_prompt='測試')
+        agent = Agent(config=config, client=mock_client)
+        agent.conversation = [
+            {'role': 'user', 'content': 'Hello'},
+            {'role': 'assistant', 'content': [{'type': 'text', 'text': 'Hi'}]},
+            {'role': 'user', 'content': 'How are you?'},
+        ]
+
+        # Act
+        kwargs = agent.build_stream_kwargs()
+
+        # Assert - 最後一個 message 應包含 cache_control
+        last_message = kwargs['messages'][-1]
+        assert 'content' in last_message
+
+        # 檢查最後一個 content block
+        if isinstance(last_message['content'], list):
+            last_block = last_message['content'][-1]
+            assert 'cache_control' in last_block
+            assert last_block['cache_control'] == {'type': 'ephemeral'}
+        else:
+            # 字串格式應被轉換
+            pytest.fail('Content should be converted to list format')
+
+    def test_preserve_original_conversation(self, mock_client: MagicMock) -> None:
+        """Scenario: 不修改原始對話歷史。
+
+        Given Agent 的對話歷史包含 3 則訊息
+        When Agent 建立帶有 cache_control 的 API 請求參數
+        Then 原始對話歷史應保持不變
+        And 原始對話歷史不應包含任何 cache_control
+        """
+        # Arrange
+        config = AgentConfig(system_prompt='測試')
+        agent = Agent(config=config, client=mock_client)
+        original_conversation = [
+            {'role': 'user', 'content': 'Hello'},
+            {'role': 'assistant', 'content': [{'type': 'text', 'text': 'Hi'}]},
+            {'role': 'user', 'content': 'Bye'},
+        ]
+        agent.conversation = original_conversation.copy()  # type: ignore[assignment]
+
+        # Act
+        kwargs = agent.build_stream_kwargs()
+
+        # Assert - 原始 conversation 不應被修改
+        assert len(agent.conversation) == 3
+        for msg in agent.conversation:
+            content = msg['content']
+            if isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict):
+                        assert 'cache_control' not in block
+            # 字串格式本來就沒有 cache_control
+
+        # Assert - kwargs 中的 messages 應該有 cache_control
+        last_message = kwargs['messages'][-1]
+        if isinstance(last_message['content'], list):
+            last_block = last_message['content'][-1]
+            assert 'cache_control' in last_block
+
+    def test_handle_string_content(self, mock_client: MagicMock) -> None:
+        """Scenario: 處理字串類型的 content。
+
+        Given 對話歷史最後一則訊息的 content 是字串
+        When Agent 建立 API 請求參數
+        Then 該 content 應轉換為 text block 格式
+        And text block 應包含 cache_control
+        """
+        # Arrange
+        config = AgentConfig(system_prompt='測試')
+        agent = Agent(config=config, client=mock_client)
+        agent.conversation = [
+            {'role': 'user', 'content': 'Hello, world!'},  # ← 字串格式
+        ]
+
+        # Act
+        kwargs = agent.build_stream_kwargs()
+
+        # Assert - 應轉換為 list 格式
+        last_message = kwargs['messages'][-1]
+        assert isinstance(last_message['content'], list)
+        assert len(last_message['content']) == 1
+
+        # Assert - text block 應包含 cache_control
+        text_block = last_message['content'][0]
+        assert text_block['type'] == 'text'
+        assert text_block['text'] == 'Hello, world!'
+        assert text_block['cache_control'] == {'type': 'ephemeral'}
+
+    def test_handle_list_content(self, mock_client: MagicMock) -> None:
+        """Scenario: 處理列表類型的 content。
+
+        Given 對話歷史最後一則訊息的 content 是列表
+        When Agent 建立 API 請求參數
+        Then 列表的最後一個 block 應包含 cache_control
+        And 其他 blocks 不應包含 cache_control
+        """
+        # Arrange
+        config = AgentConfig(system_prompt='測試')
+        agent = Agent(config=config, client=mock_client)
+        agent.conversation = [
+            {
+                'role': 'user',
+                'content': [  # ← 列表格式
+                    {'type': 'tool_result', 'tool_use_id': 'tool_1', 'content': 'result 1'},
+                    {'type': 'tool_result', 'tool_use_id': 'tool_2', 'content': 'result 2'},
+                ],
+            }
+        ]
+
+        # Act
+        kwargs = agent.build_stream_kwargs()
+
+        # Assert - 只有最後一個 block 應包含 cache_control
+        last_message = kwargs['messages'][-1]
+        content_list = cast(list[dict[str, Any]], last_message['content'])
+        assert len(content_list) == 2
+
+        # 第一個 block 不應有 cache_control
+        assert 'cache_control' not in content_list[0]
+
+        # 最後一個 block 應有 cache_control
+        assert 'cache_control' in content_list[1]
+        assert content_list[1]['cache_control'] == {'type': 'ephemeral'}
+
+    def test_empty_conversation(self, mock_client: MagicMock) -> None:
+        """測試空對話歷史的邊界情況。
+
+        Given Agent 的對話歷史為空
+        When Agent 建立 API 請求參數
+        Then 不應發生錯誤
+        And messages 應為空列表
+        """
+        # Arrange
+        config = AgentConfig(system_prompt='測試')
+        agent = Agent(config=config, client=mock_client)
+        agent.conversation = []
+
+        # Act
+        kwargs = agent.build_stream_kwargs()
+
+        # Assert
+        assert kwargs['messages'] == []

@@ -50,7 +50,8 @@ class TestSmokeFileRead:
 
         chunks: list[str] = []
         async for chunk in agent.stream_message('請讀取 src/main.py 的內容'):
-            chunks.append(chunk)
+            if isinstance(chunk, str):
+                chunks.append(chunk)
 
         response = ''.join(chunks)
 

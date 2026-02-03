@@ -52,7 +52,8 @@ class TestSmokeFileEdit:
         async for chunk in agent.stream_message(
             '請將 src/main.py 中的 old_function 重新命名為 new_function'
         ):
-            chunks.append(chunk)
+            if isinstance(chunk, str):
+                chunks.append(chunk)
 
         response = ''.join(chunks)
 
@@ -80,7 +81,8 @@ class TestSmokeFileEdit:
         async for chunk in agent.stream_message(
             '請建立一個新檔案 src/utils.py，內容為一個簡單的 helper 函數'
         ):
-            chunks.append(chunk)
+            if isinstance(chunk, str):
+                chunks.append(chunk)
 
         response = ''.join(chunks)
 
