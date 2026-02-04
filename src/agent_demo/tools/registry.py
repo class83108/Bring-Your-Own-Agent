@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import inspect
 import logging
 from collections.abc import Callable
@@ -154,30 +153,3 @@ class ToolRegistry:
             if lock_key and self.lock_provider:
                 await self.lock_provider.release(lock_key)
                 logger.debug('已釋放檔案鎖', extra={'lock_key': lock_key})
-
-    async def execute_parallel(self, tool_calls: list[dict[str, Any]]) -> list[Any]:
-        """並行執行多個工具。
-
-        注意：如果多個工具操作同一個檔案，會透過 lock_provider 自動串行化。
-
-        Args:
-            tool_calls: 工具調用列表，每個元素包含 name 和 input
-
-        Returns:
-            執行結果列表，順序與輸入一致
-        """
-
-        async def _execute_single(call: dict[str, Any]) -> Any:
-            """執行單一工具，捕捉錯誤。"""
-            try:
-                return await self.execute(call['name'], call['input'])
-            except Exception as e:
-                logger.warning(
-                    '工具執行失敗',
-                    extra={'tool_name': call['name'], 'error': str(e)},
-                )
-                return f'錯誤: {e}'
-
-        # 並行執行所有工具
-        tasks = [_execute_single(call) for call in tool_calls]
-        return await asyncio.gather(*tasks)

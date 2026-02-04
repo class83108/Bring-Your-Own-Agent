@@ -56,7 +56,7 @@ class TestSmokeParallelTools:
         ):
             if isinstance(item, str):
                 chunks.append(item)
-            elif item.get('type') == 'tool_call':  # type: ignore[union-attr]
+            elif item.get('type') == 'tool_call':
                 events.append(item)
 
         response = ''.join(chunks)

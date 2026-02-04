@@ -135,104 +135,6 @@ class TestToolRegistryManagement:
 
 
 # =============================================================================
-# Rule: Agent 應支援並行工具執行
-# =============================================================================
-
-
-class TestParallelToolExecution:
-    """測試並行工具執行功能。"""
-
-    async def test_execute_multiple_tools_in_parallel(self, registry: Any) -> None:
-        """Scenario: 同時執行多個獨立工具。
-
-        Given Claude 回應包含多個工具調用請求
-        And 這些工具調用彼此獨立
-        When Agent 執行這些工具
-        Then 所有工具應並行執行
-        And Agent 應收集所有結果後一併回傳給 Claude
-        """
-        # Arrange - 註冊兩個獨立的耗時工具
-        registry.register(
-            name='tool_a',
-            description='工具 A',
-            parameters={'type': 'object', 'properties': {'param': {'type': 'string'}}},
-            handler=slow_tool_a,
-        )
-        registry.register(
-            name='tool_b',
-            description='工具 B',
-            parameters={'type': 'object', 'properties': {'param': {'type': 'string'}}},
-            handler=slow_tool_b,
-        )
-
-        # 模擬 Claude 回應的多個工具調用請求
-        tool_calls = [
-            {'name': 'tool_a', 'input': {'param': '參數A'}},
-            {'name': 'tool_b', 'input': {'param': '參數B'}},
-        ]
-
-        # Act - 並行執行並計時
-        import time
-
-        start = time.monotonic()
-        results = await registry.execute_parallel(tool_calls)
-        elapsed = time.monotonic() - start
-
-        # Assert - 所有工具應並行執行（總時間應接近單一工具時間，而非相加）
-        assert elapsed < 0.15  # 並行應 < 0.15s，串行會 > 0.2s
-
-        # Assert - 應收集所有結果
-        assert len(results) == 2
-        assert results[0] == '工具A結果: 參數A'
-        assert results[1] == '工具B結果: 參數B'
-
-    async def test_parallel_execution_with_partial_failure(self, registry: Any) -> None:
-        """Scenario: 並行執行中部分工具失敗。
-
-        Given Claude 回應包含三個工具調用請求
-        When Agent 並行執行這些工具
-        And 其中一個工具執行失敗
-        Then Agent 應收集成功的結果與失敗的錯誤訊息
-        And Agent 應將所有結果回傳給 Claude 處理
-        """
-        # Arrange - 註冊三個工具，其中一個會失敗
-        registry.register(
-            name='tool_a',
-            description='工具 A',
-            parameters={'type': 'object', 'properties': {'param': {'type': 'string'}}},
-            handler=slow_tool_a,
-        )
-        registry.register(
-            name='tool_b',
-            description='工具 B',
-            parameters={'type': 'object', 'properties': {'param': {'type': 'string'}}},
-            handler=slow_tool_b,
-        )
-        registry.register(
-            name='failing_tool',
-            description='會失敗的工具',
-            parameters={'type': 'object', 'properties': {'param': {'type': 'string'}}},
-            handler=failing_tool,
-        )
-
-        # 模擬 Claude 回應的三個工具調用請求
-        tool_calls = [
-            {'name': 'tool_a', 'input': {'param': '參數A'}},
-            {'name': 'failing_tool', 'input': {'param': '參數'}},
-            {'name': 'tool_b', 'input': {'param': '參數B'}},
-        ]
-
-        # Act
-        results = await registry.execute_parallel(tool_calls)
-
-        # Assert - 應收集成功的結果與失敗的錯誤訊息
-        assert len(results) == 3
-        assert results[0] == '工具A結果: 參數A'
-        assert '錯誤' in results[1] or 'error' in results[1].lower()
-        assert results[2] == '工具B結果: 參數B'
-
-
-# =============================================================================
 # Rule: 並行執行應避免檔案競爭
 # =============================================================================
 
@@ -349,13 +251,11 @@ class TestFileLocking:
             file_param='path',
         )
 
-        tool_calls = [
-            {'name': 'tool_a', 'input': {'path': 'same_file.py'}},
-            {'name': 'tool_b', 'input': {'path': 'same_file.py'}},
-        ]
-
-        # Act
-        await registry.execute_parallel(tool_calls)
+        # Act - 使用 asyncio.gather 模擬 agent 的並行執行方式
+        await asyncio.gather(
+            registry.execute('tool_a', {'path': 'same_file.py'}),
+            registry.execute('tool_b', {'path': 'same_file.py'}),
+        )
 
         # Assert - 同一檔案的操作應串行：acquire → release → acquire → release
         file_events = [e for e in mock_lock.events if e[1] == 'same_file.py']
@@ -392,13 +292,11 @@ class TestFileLocking:
             file_param='path',
         )
 
-        tool_calls = [
-            {'name': 'tool_a', 'input': {'path': 'file_a.py'}},
-            {'name': 'tool_b', 'input': {'path': 'file_b.py'}},
-        ]
-
-        # Act
-        await registry.execute_parallel(tool_calls)
+        # Act - 使用 asyncio.gather 模擬 agent 的並行執行方式
+        await asyncio.gather(
+            registry.execute('tool_a', {'path': 'file_a.py'}),
+            registry.execute('tool_b', {'path': 'file_b.py'}),
+        )
 
         # Assert - 不同檔案可並行，兩個 acquire 應該都在某個 release 之前
         acquire_events = [e for e in mock_lock.events if e[0] == 'acquire']
