@@ -486,6 +486,73 @@ class TestToolUseLoop:
         first_call_kwargs = mock_client.messages.stream.call_args_list[0][1]
         assert 'tools' in first_call_kwargs
 
+    async def test_parallel_tool_calls(self, mock_client: MagicMock) -> None:
+        """Scenario: 同時執行多個獨立工具。
+
+        Given Claude 回應包含多個工具調用請求
+        When Agent 執行這些工具
+        Then 所有工具應並行執行
+        And Agent 應收集所有結果後一併回傳給 Claude
+        """
+        # Arrange - 建立帶兩個工具的 Agent
+        registry = ToolRegistry()
+        registry.register(
+            name='read_file',
+            description='讀取檔案',
+            parameters={
+                'type': 'object',
+                'properties': {'path': {'type': 'string'}},
+                'required': ['path'],
+            },
+            handler=lambda path: {'content': f'內容: {path}', 'path': path},  # type: ignore[reportUnknownLambdaType]
+        )
+        config = AgentConfig(system_prompt='測試')
+        agent = Agent(config=config, client=mock_client, tool_registry=registry)
+
+        # 第一次 API 呼叫：Claude 回傳兩個 tool_use blocks
+        tool_block_a = _make_tool_use_block('tool_a', 'read_file', {'path': 'a.py'})
+        tool_block_b = _make_tool_use_block('tool_b', 'read_file', {'path': 'b.py'})
+        first_stream = create_mock_stream(
+            text_chunks=['讓我讀取這兩個檔案'],
+            stop_reason='tool_use',
+            content_blocks=[_make_text_block('讓我讀取這兩個檔案'), tool_block_a, tool_block_b],
+        )
+
+        # 第二次 API 呼叫：Claude 回傳最終文字
+        second_stream = create_mock_stream(['兩個檔案內容如上。'])
+        mock_client.messages.stream.side_effect = [first_stream, second_stream]
+
+        # Act
+        chunks: list[str] = []
+        events: list[dict[str, Any]] = []
+        async for item in agent.stream_message('請讀取 a.py 和 b.py'):
+            if isinstance(item, str):
+                chunks.append(item)
+            else:
+                events.append(item)
+
+        # Assert - 最終文字回應
+        result = ''.join(chunks)
+        assert '兩個檔案內容如上' in result
+
+        # Assert - 應有 preamble_end + 2 個 started + 2 個 completed 事件
+        tool_events = [e for e in events if e.get('type') == 'tool_call']
+        started = [e for e in tool_events if e['data']['status'] == 'started']
+        completed = [e for e in tool_events if e['data']['status'] == 'completed']
+        assert len(started) == 2
+        assert len(completed) == 2
+
+        # Assert - 所有 started 事件應在所有 completed 之前（並行模式的特徵）
+        started_indices = [events.index(e) for e in started]
+        completed_indices = [events.index(e) for e in completed]
+        assert max(started_indices) < min(completed_indices)
+
+        # Assert - 對話歷史應包含兩個 tool_result
+        tool_results: Any = agent.conversation[2]['content']
+        assert len(tool_results) == 2
+        result_ids = {r['tool_use_id'] for r in tool_results}
+        assert result_ids == {'tool_a', 'tool_b'}
+
     async def test_tool_execution_error(self, mock_client: MagicMock) -> None:
         """Scenario: 工具執行失敗時回傳 is_error。
 

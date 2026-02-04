@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from collections.abc import AsyncIterator
@@ -340,16 +341,16 @@ class Agent:
                 if response_parts:
                     yield {'type': 'preamble_end', 'data': {}}
 
-                # 執行工具並產生事件
-                tool_results: list[ToolResultBlockParam] = []
-                for block in final_message.content:
-                    if block.type != 'tool_use':
-                        continue
+                # 收集所有工具調用區塊
+                assert self.tool_registry is not None
+                tool_use_blocks = [b for b in final_message.content if b.type == 'tool_use']
 
+                # 先通知前端所有工具開始執行（讓前端同時顯示 running 狀態）
+                summaries: dict[str, str] = {}
+                for block in tool_use_blocks:
                     summary = get_tool_summary(block.name, block.input)
+                    summaries[block.id] = summary
                     logger.info('執行工具', extra={'tool_name': block.name, 'tool_id': block.id})
-
-                    # 通知：工具開始執行
                     yield {
                         'type': 'tool_call',
                         'data': {
@@ -359,9 +360,27 @@ class Agent:
                         },
                     }
 
+                # 並行執行所有工具
+                async def _run_tool(
+                    tool_block: Any,
+                ) -> tuple[Any, Exception | None]:
+                    """執行單一工具，回傳 (結果, 錯誤)。"""
                     try:
-                        assert self.tool_registry is not None
-                        result = await self.tool_registry.execute(block.name, block.input)
+                        res = await self.tool_registry.execute(  # type: ignore[union-attr]
+                            tool_block.name,
+                            tool_block.input,
+                        )
+                        return (res, None)
+                    except Exception as exc:
+                        return (None, exc)
+
+                exec_results = await asyncio.gather(*[_run_tool(b) for b in tool_use_blocks])
+
+                # 收集結果並通知前端完成狀態
+                tool_results: list[ToolResultBlockParam] = []
+                for block, (result, error) in zip(tool_use_blocks, exec_results):
+                    summary = summaries[block.id]
+                    if error is None:
                         result_content = (
                             json.dumps(result, ensure_ascii=False)
                             if isinstance(result, dict)
@@ -374,7 +393,6 @@ class Agent:
                                 content=result_content,
                             )
                         )
-                        # 通知：工具執行完成
                         yield {
                             'type': 'tool_call',
                             'data': {
@@ -383,27 +401,26 @@ class Agent:
                                 'summary': summary,
                             },
                         }
-                    except Exception as e:
+                    else:
                         logger.warning(
                             '工具執行失敗',
-                            extra={'tool_name': block.name, 'error': str(e)},
+                            extra={'tool_name': block.name, 'error': str(error)},
                         )
                         tool_results.append(
                             ToolResultBlockParam(
                                 type='tool_result',
                                 tool_use_id=block.id,
-                                content=str(e),
+                                content=str(error),
                                 is_error=True,
                             )
                         )
-                        # 通知：工具執行失敗
                         yield {
                             'type': 'tool_call',
                             'data': {
                                 'name': block.name,
                                 'status': 'failed',
                                 'summary': summary,
-                                'error': str(e),
+                                'error': str(error),
                             },
                         }
 

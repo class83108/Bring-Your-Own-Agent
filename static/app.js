@@ -337,15 +337,15 @@ async function sendMessage() {
             assistantBubble.appendChild(currentTextEl);
 
           } else if (data.status === 'completed') {
-            // 找到最後一個同名工具的狀態元素
-            const statusEl = findLastToolStatus(toolStatusMap, data.name);
+            // 找到第一個仍在 running 的同名工具狀態元素
+            const statusEl = findFirstRunningToolStatus(toolStatusMap, data.name);
             if (statusEl) {
               statusEl.classList.remove('running');
               statusEl.classList.add('completed');
             }
 
           } else if (data.status === 'failed') {
-            const statusEl = findLastToolStatus(toolStatusMap, data.name);
+            const statusEl = findFirstRunningToolStatus(toolStatusMap, data.name);
             if (statusEl) {
               statusEl.classList.remove('running');
               statusEl.classList.add('failed');
@@ -407,14 +407,13 @@ async function sendMessage() {
 /**
  * 找到 toolStatusMap 中最後一個符合工具名稱的元素
  */
-function findLastToolStatus(toolStatusMap, toolName) {
-  let lastEl = null;
+function findFirstRunningToolStatus(toolStatusMap, toolName) {
   for (const [key, el] of toolStatusMap) {
-    if (key.startsWith(toolName + '_')) {
-      lastEl = el;
+    if (key.startsWith(toolName + '_') && el.classList.contains('running')) {
+      return el;
     }
   }
-  return lastEl;
+  return null;
 }
 
 // ===========================================
