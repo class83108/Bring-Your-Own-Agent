@@ -3,7 +3,9 @@
     "allow": [
       "Bash(uv run pytest:*)",
       "Bash(uv run ruff check:*)",
-      "Bash(uv run pyright:*)"
+      "Bash(uv run pyright:*)",
+      "WebFetch(domain:platform.openai.com)",
+      "WebFetch(domain:claude.com)"
     ]
   }
 }
