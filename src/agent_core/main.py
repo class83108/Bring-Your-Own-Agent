@@ -12,7 +12,7 @@ import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, cast
+from typing import Annotated, Any, cast
 
 from dotenv import load_dotenv
 from fastapi import Cookie, FastAPI, Request
@@ -279,7 +279,7 @@ async def _stream_chat(
 @app.post('/api/chat/stream')
 async def chat_stream(
     request: Request,
-    session_id: str | None = Cookie(default=None),
+    session_id: Annotated[str | None, Cookie()] = None,
 ) -> StreamingResponse:
     """SSE 串流聊天端點。
 
@@ -316,7 +316,7 @@ async def chat_stream(
 
 @app.get('/api/chat/history')
 async def chat_history(
-    session_id: str | None = Cookie(default=None),
+    session_id: Annotated[str | None, Cookie()] = None,
 ) -> JSONResponse:
     """取得會話歷史端點。
 
@@ -340,7 +340,7 @@ async def chat_history(
 
 @app.post('/api/chat/reset')
 async def chat_reset(
-    session_id: str | None = Cookie(default=None),
+    session_id: Annotated[str | None, Cookie()] = None,
 ) -> JSONResponse:
     """清除會話歷史端點。
 
@@ -360,7 +360,7 @@ async def chat_reset(
 
 @app.get('/api/chat/usage')
 async def chat_usage(
-    session_id: str | None = Cookie(default=None),
+    session_id: Annotated[str | None, Cookie()] = None,
 ) -> JSONResponse:
     """查看 API 使用量統計端點。
 
@@ -390,7 +390,7 @@ async def chat_usage(
 
 @app.post('/api/chat/usage/reset')
 async def chat_usage_reset(
-    session_id: str | None = Cookie(default=None),
+    session_id: Annotated[str | None, Cookie()] = None,
 ) -> JSONResponse:
     """重設使用量統計端點。
 
