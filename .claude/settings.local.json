@@ -8,7 +8,8 @@
       "WebFetch(domain:claude.com)",
       "Bash(ls:*)",
       "Bash(git mv:*)",
-      "Bash(xargs perl:*)"
+      "Bash(xargs perl:*)",
+      "Bash(git -C /Users/nb050/agent-demo log --oneline -5)"
     ]
   }
 }
