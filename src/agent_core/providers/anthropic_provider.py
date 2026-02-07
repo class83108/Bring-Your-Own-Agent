@@ -140,7 +140,7 @@ class AnthropicProvider:
 
         return kwargs
 
-    def _convert_error(self, error: Exception) -> Exception:
+    def _convert_error(self, error: anthropic.APIError) -> ProviderError:
         """將 Anthropic SDK 例外轉換為通用 Provider 例外。
 
         Args:
@@ -159,7 +159,7 @@ class AnthropicProvider:
             return ProviderConnectionError('API 連線失敗，請檢查網路連線並稍後重試。')
         if isinstance(error, APIStatusError):
             return ProviderError(f'API 錯誤 ({error.status_code}): {error.message}')
-        return error
+        return ProviderError(str(error))
 
     @asynccontextmanager
     async def stream(

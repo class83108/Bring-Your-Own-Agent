@@ -264,7 +264,7 @@ async def _stream_chat(
             await session_manager.save_usage(session_id, agent.usage_monitor.records)
         yield _sse_event('done', '')
 
-    except (ValueError, Exception) as e:
+    except Exception as e:
         # 錯誤時傳出 SSE error 事件
         error_data = {'type': type(e).__name__, 'message': str(e)}
         yield _sse_event('error', error_data)
