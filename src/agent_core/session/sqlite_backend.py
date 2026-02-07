@@ -188,6 +188,43 @@ class SQLiteSessionBackend:
         self._conn.commit()
         logger.debug('使用量統計已清除（SQLite）', extra={'session_id': session_id})
 
+    # =========================================================================
+    # Session 管理
+    # =========================================================================
+
+    async def list_sessions(self) -> list[dict[str, Any]]:
+        """列出所有 session 摘要。
+
+        Returns:
+            session 摘要列表，每筆包含 session_id、created_at、updated_at、message_count
+        """
+        cursor = self._conn.execute(
+            'SELECT session_id, conversation, created_at, updated_at FROM sessions'
+        )
+        sessions: list[dict[str, Any]] = []
+        for row in cursor.fetchall():
+            conversation: list[Any] = json.loads(row[1])
+            sessions.append(
+                {
+                    'session_id': row[0],
+                    'created_at': row[2],
+                    'updated_at': row[3],
+                    'message_count': len(conversation),
+                }
+            )
+        return sessions
+
+    async def delete_session(self, session_id: str) -> None:
+        """刪除 session（同時清除對話與使用量）。
+
+        Args:
+            session_id: 會話識別符
+        """
+        self._conn.execute('DELETE FROM sessions WHERE session_id = ?', (session_id,))
+        self._conn.execute('DELETE FROM usage WHERE session_id = ?', (session_id,))
+        self._conn.commit()
+        logger.debug('Session 已刪除（SQLite）', extra={'session_id': session_id})
+
     async def close(self) -> None:
         """關閉 SQLite 連線。"""
         self._conn.close()

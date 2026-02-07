@@ -195,6 +195,81 @@ class TestSQLiteComplexMessages:
         assert tool_result_block['is_error'] is False
 
 
+# =============================================================================
+# Rule: SQLite 後端應支援列出與刪除 session
+# =============================================================================
+
+
+class TestSQLiteSessionManagement:
+    """測試 session 列出與刪除。"""
+
+    async def test_list_sessions_returns_summaries(self, backend: SQLiteSessionBackend) -> None:
+        """Scenario: 列出所有 session。"""
+        await backend.save('s1', [{'role': 'user', 'content': 'A'}])
+        await backend.save(
+            's2',
+            [
+                {'role': 'user', 'content': 'B'},
+                {'role': 'assistant', 'content': 'C'},
+            ],
+        )
+
+        sessions = await backend.list_sessions()
+
+        assert len(sessions) == 2
+        ids = {s['session_id'] for s in sessions}
+        assert ids == {'s1', 's2'}
+
+        # 驗證每筆摘要包含必要欄位
+        for s in sessions:
+            assert 'session_id' in s
+            assert 'created_at' in s
+            assert 'updated_at' in s
+            assert 'message_count' in s
+
+        # 驗證 message_count 正確
+        s1_summary = next(s for s in sessions if s['session_id'] == 's1')
+        s2_summary = next(s for s in sessions if s['session_id'] == 's2')
+        assert s1_summary['message_count'] == 1
+        assert s2_summary['message_count'] == 2
+
+    async def test_list_sessions_empty(self, backend: SQLiteSessionBackend) -> None:
+        """Scenario: 無 session 時列出回傳空列表。"""
+        sessions = await backend.list_sessions()
+
+        assert sessions == []
+
+    async def test_delete_session_clears_conversation_and_usage(
+        self, backend: SQLiteSessionBackend
+    ) -> None:
+        """Scenario: 刪除 session 同時清除對話與使用量。"""
+        from datetime import datetime
+
+        from agent_core.usage_monitor import UsageRecord
+
+        await backend.save('abc', [{'role': 'user', 'content': 'Hello'}])
+        await backend.save_usage(
+            'abc',
+            [
+                UsageRecord(timestamp=datetime.now(), input_tokens=100, output_tokens=50),
+            ],
+        )
+
+        await backend.delete_session('abc')
+
+        assert await backend.load('abc') == []
+        assert await backend.load_usage('abc') == []
+
+        # 列出時不應包含已刪除的 session
+        sessions = await backend.list_sessions()
+        assert all(s['session_id'] != 'abc' for s in sessions)
+
+    async def test_delete_nonexistent_session_no_error(self, backend: SQLiteSessionBackend) -> None:
+        """Scenario: 刪除不存在的 session 不應報錯。"""
+        # 不應拋出例外
+        await backend.delete_session('not-exist')
+
+
 class TestSQLiteProtocolCompliance:
     """測試 SQLiteSessionBackend 符合 SessionBackend Protocol。"""
 

@@ -11,11 +11,17 @@
 - [x] 使用量統計持久化（`load_usage` / `save_usage` / `reset_usage`）
 - [x] `main.py` 已切換為 SQLite 後端（移除 Redis 依賴）
 
-### 1-2. Session 隔離
+### 1-2. Session 管理與隔離 ✅
 
-- [ ] 每個對話有獨立 session ID
-- [ ] API 層支援 session 管理（建立、切換、列出歷史對話）
-- [ ] 多個使用者/tab 不再共用同一個 conversation
+- [x] `SQLiteSessionBackend` 新增 `list_sessions()` 方法（回傳所有 session 摘要）
+- [x] `SQLiteSessionBackend` 新增 `delete_session()` 方法（刪除 session 與其 usage）
+- [x] RESTful Session API：
+  - `POST /api/sessions` — 建立新 session
+  - `GET /api/sessions` — 列出所有 sessions
+  - `GET /api/sessions/{id}` — 取得特定 session 歷史
+  - `DELETE /api/sessions/{id}` — 刪除特定 session
+- [x] 移除舊 `/api/chat/reset`，由 `DELETE /api/sessions/{id}` 取代
+- [x] 多個使用者/tab 不再共用同一個 conversation（每個 session 獨立 ID）
 
 ---
 
@@ -76,6 +82,7 @@ API 呼叫失敗（429 rate limit、網路閃斷）很常見，目前一失敗�
 | 功能 | 說明 | 備註 |
 |------|------|------|
 | Sub-Agent | 子 agent 隔離執行（compact 摘要、重量級工具調用） | 現有 `Agent` 架構可直接建立獨立實例，用 Haiku 降低成本 |
+| Redis 中繼層 | 串流 buffer + 斷線復原 | SQLite 負責持久化，Redis 做短期快取，客戶端斷線後可從 Redis 補推未送完的 token |
 | 多 Provider | 支援 OpenAI、Gemini 等 | Protocol 已設計好，需要時再加 |
 | Cost tracking | 費用追蹤 | `UsageInfo` 已回傳 token 數，加累加器即可 |
 | Guardrails | 輸入輸出過濾 | 可先透過 Skill 的 system prompt 做基本防護 |

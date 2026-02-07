@@ -333,26 +333,6 @@ async def chat_history(
     return JSONResponse({'messages': messages})
 
 
-@app.post('/api/chat/reset')
-async def chat_reset(
-    session_id: Annotated[str | None, Cookie()] = None,
-) -> JSONResponse:
-    """清除會話歷史端點。
-
-    Args:
-        session_id: 會話 Cookie
-
-    Returns:
-        清除結果
-    """
-    if not session_id:
-        return JSONResponse({'status': 'ok', 'message': '無會話需清除'})
-
-    await session_manager.reset(session_id)
-    logger.info('會話歷史已清除', extra={'session_id': session_id})
-    return JSONResponse({'status': 'ok', 'message': '歷史已清除'})
-
-
 @app.get('/api/chat/usage')
 async def chat_usage(
     session_id: Annotated[str | None, Cookie()] = None,
@@ -493,6 +473,66 @@ async def skill_deactivate(name: str) -> JSONResponse:
     skill_registry.deactivate(name)
     logger.info('Skill 已透過 API 停用', extra={'skill_name': name})
     return JSONResponse({'status': 'ok', 'skill': name, 'active': False})
+
+
+# --- Session 管理 API ---
+@app.post('/api/sessions')
+async def create_session() -> JSONResponse:
+    """建立新 session。
+
+    Returns:
+        包含新 session_id 的回應（201）
+    """
+    new_id = uuid.uuid4().hex
+    logger.info('建立新 session', extra={'session_id': new_id})
+    return JSONResponse({'session_id': new_id}, status_code=201)
+
+
+@app.get('/api/sessions')
+async def list_sessions() -> JSONResponse:
+    """列出所有 sessions。
+
+    Returns:
+        session 摘要列表
+    """
+    sessions = await session_manager.list_sessions()
+    return JSONResponse({'sessions': sessions})
+
+
+@app.get('/api/sessions/{session_id}')
+async def get_session(session_id: str) -> JSONResponse:
+    """取得特定 session 的對話歷史。
+
+    Args:
+        session_id: 會話識別符
+
+    Returns:
+        對話歷史，若 session 不存在則回傳 404
+    """
+    conversation = await session_manager.load(session_id)
+    if not conversation:
+        return JSONResponse(
+            {'error': f"Session '{session_id}' 不存在"},
+            status_code=404,
+        )
+
+    messages = _convert_to_frontend_messages(conversation)
+    return JSONResponse({'session_id': session_id, 'messages': messages})
+
+
+@app.delete('/api/sessions/{session_id}')
+async def delete_session(session_id: str) -> JSONResponse:
+    """刪除特定 session。
+
+    Args:
+        session_id: 會話識別符
+
+    Returns:
+        刪除結果
+    """
+    await session_manager.delete_session(session_id)
+    logger.info('Session 已透過 API 刪除', extra={'session_id': session_id})
+    return JSONResponse({'status': 'ok', 'message': f"Session '{session_id}' 已刪除"})
 
 
 @app.get('/health')

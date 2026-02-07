@@ -18,7 +18,6 @@ from agent_core.main import app
 
 # --- 測試用常數 ---
 STREAM_URL = '/api/chat/stream'
-RESET_URL = '/api/chat/reset'
 HISTORY_URL = '/api/chat/history'
 SESSION_COOKIE = {'session_id': 'test-session-abc'}
 
@@ -296,21 +295,19 @@ class TestSessionHistory:
         assert saved_conversation[3]['role'] == 'assistant'
 
     @pytest.mark.asyncio
-    async def test_reset_clears_history(self) -> None:
-        """清除會話歷史。"""
+    async def test_delete_session_clears_history(self) -> None:
+        """透過 DELETE /api/sessions/{id} 清除會話歷史。"""
         mock_session = _make_mock_session_manager()
+        mock_session.delete_session = AsyncMock()
 
         with patch('agent_core.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
-                response = await client.post(
-                    RESET_URL,
-                    cookies=SESSION_COOKIE,
-                )
+                response = await client.delete('/api/sessions/test-session-abc')
 
         assert response.status_code == 200
-        mock_session.reset.assert_called_once_with('test-session-abc')
+        mock_session.delete_session.assert_called_once_with('test-session-abc')
 
 
 class TestChatHistory:
@@ -771,6 +768,110 @@ class TestSkillManagement:
                 # 啟用後
                 after = await client.get(STATUS_URL)
                 assert 'tdd' in after.json()['skills']['active']
+
+
+class TestSessionAPI:
+    """測試 RESTful Session API — 對應 Rule: Session API 應支援 RESTful 操作"""
+
+    @pytest.mark.asyncio
+    async def test_create_session(self) -> None:
+        """POST /api/sessions 應建立新 session。"""
+        mock_session = _make_mock_session_manager()
+
+        with patch('agent_core.main.session_manager', mock_session):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url='http://test'
+            ) as client:
+                response = await client.post('/api/sessions')
+
+        assert response.status_code == 201
+        data = response.json()
+        assert 'session_id' in data
+        assert len(data['session_id']) > 0
+
+    @pytest.mark.asyncio
+    async def test_list_sessions(self) -> None:
+        """GET /api/sessions 應回傳 session 摘要列表。"""
+        mock_session = _make_mock_session_manager()
+        mock_session.list_sessions = AsyncMock(
+            return_value=[
+                {
+                    'session_id': 's1',
+                    'created_at': '2025-01-01 00:00:00',
+                    'updated_at': '2025-01-01 00:01:00',
+                    'message_count': 2,
+                },
+                {
+                    'session_id': 's2',
+                    'created_at': '2025-01-01 00:02:00',
+                    'updated_at': '2025-01-01 00:03:00',
+                    'message_count': 4,
+                },
+            ]
+        )
+
+        with patch('agent_core.main.session_manager', mock_session):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url='http://test'
+            ) as client:
+                response = await client.get('/api/sessions')
+
+        assert response.status_code == 200
+        data = response.json()
+        assert 'sessions' in data
+        assert len(data['sessions']) == 2
+
+    @pytest.mark.asyncio
+    async def test_get_session_history(self) -> None:
+        """GET /api/sessions/{id} 應回傳特定 session 的對話歷史。"""
+        mock_session = _make_mock_session_manager()
+        mock_session.load = AsyncMock(
+            return_value=[
+                {'role': 'user', 'content': 'Hello'},
+                {'role': 'assistant', 'content': 'Hi'},
+            ]
+        )
+
+        with patch('agent_core.main.session_manager', mock_session):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url='http://test'
+            ) as client:
+                response = await client.get('/api/sessions/abc')
+
+        assert response.status_code == 200
+        data = response.json()
+        assert 'messages' in data
+        assert len(data['messages']) == 2
+        mock_session.load.assert_called_once_with('abc')
+
+    @pytest.mark.asyncio
+    async def test_get_nonexistent_session_returns_404(self) -> None:
+        """GET /api/sessions/{id} 不存在的 session 應回傳 404。"""
+        mock_session = _make_mock_session_manager()
+        mock_session.load = AsyncMock(return_value=[])
+
+        with patch('agent_core.main.session_manager', mock_session):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url='http://test'
+            ) as client:
+                response = await client.get('/api/sessions/not-exist')
+
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_delete_session(self) -> None:
+        """DELETE /api/sessions/{id} 應刪除特定 session。"""
+        mock_session = _make_mock_session_manager()
+        mock_session.delete_session = AsyncMock()
+
+        with patch('agent_core.main.session_manager', mock_session):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url='http://test'
+            ) as client:
+                response = await client.delete('/api/sessions/abc')
+
+        assert response.status_code == 200
+        mock_session.delete_session.assert_called_once_with('abc')
 
 
 class TestFileEventStreaming:
