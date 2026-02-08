@@ -52,28 +52,29 @@
 
 ---
 
-## Priority 3: 錯誤恢復（重要）
+## Priority 3: 錯誤恢復（重要）✅
 
 API 呼叫失敗（429 rate limit、網路閃斷）很常見，目前一失敗就整輪中斷。
 
-### 3-1. Retry with Backoff
+### 3-1. Retry with Backoff ✅
 
-- [ ] 在 `AnthropicProvider` 加入 retry 邏輯（指數退避）
-- [ ] 可設定 max_retries、初始等待時間
-- [ ] 區分可重試錯誤（429、5xx、網路超時）與不可重試錯誤（401、400）
-- [ ] 重試過程透過 SSE 通知前端（可選）
+- [x] 在 `AnthropicProvider` 加入 retry 邏輯（指數退避）
+- [x] 可設定 max_retries、初始等待時間
+- [x] 區分可重試錯誤（429、5xx、網路超時）與不可重試錯誤（401、400）
+- [x] 重試過程透過 SSE 通知前端（on_retry 回調）
 
 ---
 
-## Priority 4: 多模態輸入（擴展能力）
+## Priority 4: 多模態輸入（擴展能力）✅
 
-支援 image 輸入（截圖、圖表），Anthropic API 本身已支援。
+支援 image 與 PDF 輸入，Anthropic API 本身已支援。
 
-### 4-1. Image 支援
+### 4-1. 圖片與 PDF 支援 ✅
 
-- [ ] `Agent.stream_message()` 支援接收圖片（base64 或 URL）
-- [ ] API 層支援 multipart 上傳或 base64 JSON
-- [ ] conversation 歷史正確保存圖片訊息
+- [x] `Agent.stream_message()` 支援接收圖片（base64 或 URL）與 PDF（base64）
+- [x] API 層支援 base64 JSON（`attachments` 欄位）
+- [x] conversation 歷史正確保存多模態訊息
+- [x] 附件大小與格式驗證（圖片 20MB、PDF 32MB、不支援類型拒絕）
 
 ---
 

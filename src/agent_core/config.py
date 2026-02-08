@@ -42,6 +42,8 @@ class ProviderConfig:
     max_tokens: int = DEFAULT_MAX_TOKENS
     timeout: float = DEFAULT_TIMEOUT
     enable_prompt_caching: bool = True
+    max_retries: int = 3
+    retry_initial_delay: float = 1.0
 
     def get_api_key(self) -> str | None:
         """取得 API Key，優先使用明確指定的值，否則從環境變數讀取。

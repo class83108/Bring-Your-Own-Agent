@@ -22,6 +22,7 @@ from pydantic import BaseModel
 
 from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig
+from agent_core.multimodal import Attachment
 from agent_core.providers.anthropic_provider import AnthropicProvider
 from agent_core.session import SQLiteSessionBackend
 from agent_core.skills.registry import SkillRegistry
@@ -70,10 +71,19 @@ app = FastAPI(title='Agent Chat API', lifespan=lifespan)
 
 
 # --- 請求模型 ---
+class AttachmentRequest(BaseModel):
+    """附件請求模型。"""
+
+    media_type: str
+    data: str | None = None
+    url: str | None = None
+
+
 class ChatRequest(BaseModel):
     """聊天請求本體。"""
 
     message: str
+    attachments: list[AttachmentRequest] | None = None
 
 
 # --- 輔助函數 ---
@@ -217,12 +227,14 @@ def _extract_sse_events(conversation: list[Any]) -> list[dict[str, Any]]:
 async def _stream_chat(
     message: str,
     session_id: str,
+    attachments: list[Attachment] | None = None,
 ) -> AsyncIterator[str]:
     """從 Agent 串流回應並格式化為 SSE 事件。
 
     Args:
         message: 使用者訊息
         session_id: 會話識別符
+        attachments: 附件列表（圖片或 PDF，可選）
 
     Yields:
         格式化的 SSE 事件字串
@@ -247,7 +259,7 @@ async def _stream_chat(
         agent.usage_monitor.load_from_dicts(usage_data)
 
     try:
-        async for item in agent.stream_message(message):
+        async for item in agent.stream_message(message, attachments=attachments):
             if isinstance(item, str):
                 # 文字 token
                 yield _sse_event('token', item)
@@ -289,10 +301,18 @@ async def chat_stream(
     body: dict[str, Any] = await request.json()
     chat_req = ChatRequest(**body)
 
+    # 轉換附件請求為 Attachment 物件
+    attachments: list[Attachment] | None = None
+    if chat_req.attachments:
+        attachments = [
+            Attachment(media_type=a.media_type, data=a.data, url=a.url)
+            for a in chat_req.attachments
+        ]
+
     sid, _ = _get_or_create_session_id(session_id)
 
     response = StreamingResponse(
-        _stream_chat(chat_req.message, sid),
+        _stream_chat(chat_req.message, sid, attachments=attachments),
         media_type='text/event-stream',
     )
 

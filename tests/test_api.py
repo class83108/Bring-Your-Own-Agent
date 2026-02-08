@@ -269,7 +269,7 @@ class TestSessionHistory:
             instance = MagicMock()
 
             # 模擬 stream_message 對 conversation 的副作用（同 Agent 實際行為）
-            async def _stream_and_update(content: str) -> AsyncIterator[str]:
+            async def _stream_and_update(content: str, **kwargs: Any) -> AsyncIterator[str]:
                 instance.conversation.append({'role': 'user', 'content': content})
                 yield '第二答'
                 instance.conversation.append({'role': 'assistant', 'content': '第二答'})
@@ -951,7 +951,7 @@ class TestFileEventStreaming:
             instance = MagicMock()
 
             # 模擬 stream_message 執行後更新 conversation
-            async def _mock_stream_with_side_effect(msg: str) -> AsyncIterator[str]:
+            async def _mock_stream_with_side_effect(msg: str, **kwargs: Any) -> AsyncIterator[str]:
                 for token in tokens:
                     yield token
                 # 執行後更新 conversation
@@ -1043,7 +1043,7 @@ class TestFileEventStreaming:
             instance = MagicMock()
 
             # 模擬 stream_message 執行後更新 conversation
-            async def _mock_stream_with_side_effect(_msg: str) -> AsyncIterator[str]:
+            async def _mock_stream_with_side_effect(_msg: str, **kwargs: Any) -> AsyncIterator[str]:
                 for token in tokens:
                     yield token
                 instance.conversation = conversation_after_stream

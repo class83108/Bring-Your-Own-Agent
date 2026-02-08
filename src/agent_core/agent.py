@@ -14,6 +14,7 @@ from typing import Any
 
 from agent_core.compact import COMPACT_THRESHOLD, compact_conversation
 from agent_core.config import AgentCoreConfig
+from agent_core.multimodal import Attachment, build_content_blocks
 from agent_core.providers.base import LLMProvider
 from agent_core.providers.exceptions import (
     ProviderAuthError,
@@ -292,21 +293,24 @@ class Agent:
     async def stream_message(
         self,
         content: str,
+        attachments: list[Attachment] | None = None,
     ) -> AsyncIterator[str | dict[str, Any]]:
         """以串流方式發送訊息並逐步取得回應。
 
         支援工具調用迴圈：當 LLM 回傳 tool_use 時，
         自動執行工具並將結果回傳，直到取得最終文字回應。
+        支援多模態輸入（圖片、PDF）。
 
         Args:
-            content: 使用者訊息內容
+            content: 使用者文字訊息內容
+            attachments: 附件列表（圖片或 PDF，可選）
 
         Yields:
             str: 回應的每個 token
             dict: 事件通知（tool_call、preamble_end）
 
         Raises:
-            ValueError: 訊息為空白
+            ValueError: 訊息為空白、附件格式不支援或過大
             ProviderConnectionError: Provider 連線失敗
             ProviderAuthError: Provider 認證失敗
             ProviderTimeoutError: Provider 回應超時
@@ -316,8 +320,11 @@ class Agent:
         if not content:
             raise ValueError('訊息不可為空白，請輸入有效內容')
 
+        # 組合文字與附件為 content blocks（無附件時維持字串格式）
+        message_content = build_content_blocks(content, attachments)
+
         # 加入使用者訊息到對話歷史
-        self.conversation.append({'role': 'user', 'content': content})
+        self.conversation.append({'role': 'user', 'content': message_content})
         logger.debug('收到使用者訊息 (串流模式)', extra={'content_length': len(content)})
 
         # 執行串流迴圈（包含工具調用處理）

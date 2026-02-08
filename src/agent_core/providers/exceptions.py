@@ -18,5 +18,9 @@ class ProviderConnectionError(ProviderError):
     """連線失敗。"""
 
 
+class ProviderRateLimitError(ProviderError):
+    """API 速率限制（429 Too Many Requests）。"""
+
+
 class ProviderTimeoutError(ProviderError):
     """請求超時。"""
