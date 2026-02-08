@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from agent_core.main import app
+from agent_app.main import app
 
 # --- 測試用常數 ---
 STREAM_URL = '/api/chat/stream'
@@ -91,8 +91,8 @@ class TestSSEStreaming:
         tokens = ['Hello', ' ', 'World']
 
         with (
-            patch('agent_core.main.session_manager', mock_session),
-            patch('agent_core.main.Agent') as MockAgent,
+            patch('agent_app.main.session_manager', mock_session),
+            patch('agent_app.main.Agent') as MockAgent,
         ):
             instance = MagicMock()
             instance.stream_message = MagicMock(return_value=_mock_stream(tokens))
@@ -131,7 +131,7 @@ class TestSSEStreaming:
         """空白訊息傳回 SSE error 事件。"""
         mock_session = _make_mock_session_manager()
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -158,8 +158,8 @@ class TestSSEStreaming:
             yield  # noqa: RET503 — 使 Python 將此視為 async generator
 
         with (
-            patch('agent_core.main.session_manager', mock_session),
-            patch('agent_core.main.Agent') as MockAgent,
+            patch('agent_app.main.session_manager', mock_session),
+            patch('agent_app.main.Agent') as MockAgent,
         ):
             instance = MagicMock()
             instance.stream_message = MagicMock(return_value=_failing_stream('測試'))
@@ -193,8 +193,8 @@ class TestSessionCookie:
         mock_session = _make_mock_session_manager()
 
         with (
-            patch('agent_core.main.session_manager', mock_session),
-            patch('agent_core.main.Agent') as MockAgent,
+            patch('agent_app.main.session_manager', mock_session),
+            patch('agent_app.main.Agent') as MockAgent,
         ):
             instance = MagicMock()
             instance.stream_message = MagicMock(return_value=_mock_stream(['回應']))
@@ -222,8 +222,8 @@ class TestSessionCookie:
         mock_session = _make_mock_session_manager()
 
         with (
-            patch('agent_core.main.session_manager', mock_session),
-            patch('agent_core.main.Agent') as MockAgent,
+            patch('agent_app.main.session_manager', mock_session),
+            patch('agent_app.main.Agent') as MockAgent,
         ):
             instance = MagicMock()
             instance.stream_message = MagicMock(return_value=_mock_stream(['回應']))
@@ -263,8 +263,8 @@ class TestSessionHistory:
         mock_session.load = AsyncMock(return_value=existing_history)
 
         with (
-            patch('agent_core.main.session_manager', mock_session),
-            patch('agent_core.main.Agent') as MockAgent,
+            patch('agent_app.main.session_manager', mock_session),
+            patch('agent_app.main.Agent') as MockAgent,
         ):
             instance = MagicMock()
 
@@ -300,7 +300,7 @@ class TestSessionHistory:
         mock_session = _make_mock_session_manager()
         mock_session.delete_session = AsyncMock()
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -326,7 +326,7 @@ class TestChatHistory:
         mock_session = _make_mock_session_manager()
         mock_session.load = AsyncMock(return_value=existing_history)
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -351,7 +351,7 @@ class TestChatHistory:
         mock_session = _make_mock_session_manager()
         mock_session.load = AsyncMock(return_value=[])
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -370,7 +370,7 @@ class TestChatHistory:
         """無會話時取得歷史記錄。"""
         mock_session = _make_mock_session_manager()
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -406,7 +406,7 @@ class TestChatHistory:
         mock_session = _make_mock_session_manager()
         mock_session.load = AsyncMock(return_value=existing_history)
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -442,7 +442,7 @@ class TestChatHistory:
         mock_session = _make_mock_session_manager()
         mock_session.load = AsyncMock(return_value=existing_history)
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -485,7 +485,7 @@ class TestChatHistory:
         mock_session = _make_mock_session_manager()
         mock_session.load = AsyncMock(return_value=existing_history)
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -538,7 +538,7 @@ class TestChatHistory:
         mock_session = _make_mock_session_manager()
         mock_session.load = AsyncMock(return_value=existing_history)
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -605,7 +605,7 @@ class TestAgentStatus:
             handler=lambda: 'ok',
         )
 
-        with patch('agent_core.main.tool_registry', mock_registry):
+        with patch('agent_app.main.tool_registry', mock_registry):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -640,7 +640,7 @@ class TestAgentStatus:
         )
         mock_skills.activate('code_review')
 
-        with patch('agent_core.main.skill_registry', mock_skills):
+        with patch('agent_app.main.skill_registry', mock_skills):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -655,8 +655,8 @@ class TestAgentStatus:
     async def test_status_with_no_registries(self) -> None:
         """registry 為 None 時應回傳空列表。"""
         with (
-            patch('agent_core.main.tool_registry', None),
-            patch('agent_core.main.skill_registry', None),
+            patch('agent_app.main.tool_registry', None),
+            patch('agent_app.main.skill_registry', None),
         ):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
@@ -682,7 +682,7 @@ class TestSkillManagement:
             Skill(name='code_review', description='程式碼審查', instructions='...')
         )
 
-        with patch('agent_core.main.skill_registry', mock_skills):
+        with patch('agent_app.main.skill_registry', mock_skills):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -700,7 +700,7 @@ class TestSkillManagement:
 
         mock_skills = SkillRegistry()
 
-        with patch('agent_core.main.skill_registry', mock_skills):
+        with patch('agent_app.main.skill_registry', mock_skills):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -720,7 +720,7 @@ class TestSkillManagement:
         )
         mock_skills.activate('code_review')
 
-        with patch('agent_core.main.skill_registry', mock_skills):
+        with patch('agent_app.main.skill_registry', mock_skills):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -738,7 +738,7 @@ class TestSkillManagement:
 
         mock_skills = SkillRegistry()
 
-        with patch('agent_core.main.skill_registry', mock_skills):
+        with patch('agent_app.main.skill_registry', mock_skills):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -749,7 +749,7 @@ class TestSkillManagement:
     @pytest.mark.asyncio
     async def test_activate_when_no_skill_registry(self) -> None:
         """skill_registry 為 None 時應回傳 404。"""
-        with patch('agent_core.main.skill_registry', None):
+        with patch('agent_app.main.skill_registry', None):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -766,7 +766,7 @@ class TestSkillManagement:
         mock_skills = SkillRegistry()
         mock_skills.register(Skill(name='tdd', description='測試驅動開發', instructions='...'))
 
-        with patch('agent_core.main.skill_registry', mock_skills):
+        with patch('agent_app.main.skill_registry', mock_skills):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -790,7 +790,7 @@ class TestSessionAPI:
         """POST /api/sessions 應建立新 session。"""
         mock_session = _make_mock_session_manager()
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -822,7 +822,7 @@ class TestSessionAPI:
             ]
         )
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -844,7 +844,7 @@ class TestSessionAPI:
             ]
         )
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -862,7 +862,7 @@ class TestSessionAPI:
         mock_session = _make_mock_session_manager()
         mock_session.load = AsyncMock(return_value=[])
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -876,7 +876,7 @@ class TestSessionAPI:
         mock_session = _make_mock_session_manager()
         mock_session.delete_session = AsyncMock()
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -945,8 +945,8 @@ class TestFileEventStreaming:
         ]
 
         with (
-            patch('agent_core.main.session_manager', mock_session),
-            patch('agent_core.main.Agent') as MockAgent,
+            patch('agent_app.main.session_manager', mock_session),
+            patch('agent_app.main.Agent') as MockAgent,
         ):
             instance = MagicMock()
 
@@ -1037,8 +1037,8 @@ class TestFileEventStreaming:
         ]
 
         with (
-            patch('agent_core.main.session_manager', mock_session),
-            patch('agent_core.main.Agent') as MockAgent,
+            patch('agent_app.main.session_manager', mock_session),
+            patch('agent_app.main.Agent') as MockAgent,
         ):
             instance = MagicMock()
 
@@ -1094,7 +1094,7 @@ class TestChatUsageContext:
             ]
         )
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:
@@ -1117,7 +1117,7 @@ class TestChatUsageContext:
         mock_session = _make_mock_session_manager()
         mock_session.load_usage = AsyncMock(return_value=[])
 
-        with patch('agent_core.main.session_manager', mock_session):
+        with patch('agent_app.main.session_manager', mock_session):
             async with AsyncClient(
                 transport=ASGITransport(app=app), base_url='http://test'
             ) as client:

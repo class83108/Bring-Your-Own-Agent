@@ -373,7 +373,7 @@ agent_core/
 內建 FastAPI 應用提供 REST API，適合搭配前端使用：
 
 ```bash
-uv run uvicorn agent_core.main:app --reload --port 8000
+uv run uvicorn agent_app.main:app --reload --port 8000
 ```
 
 | 方法 | 路徑 | 說明 |

@@ -175,15 +175,19 @@ Feature: 對話功能
 ```
 agent-demo/
 ├── src/
-│   └── agent_demo/      # 主程式碼
+│   ├── agent_core/      # 核心框架庫（可 pip install）
+│   │   ├── __init__.py
+│   │   ├── agent.py     # Agent 核心
+│   │   └── tools/       # 工具模組
+│   └── agent_app/       # 應用層（FastAPI 服務）
 │       ├── __init__.py
-│       ├── agent.py     # Agent 核心
-│       └── tools/       # 工具模組
+│       └── main.py      # FastAPI 應用入口
 ├── tests/               # 測試程式
 │   ├── conftest.py
 │   └── test_*.py
 ├── docs/
 │   └── features/        # Gherkin 功能規格 (.feature)
+├── static/              # 前端靜態檔案
 └── pyproject.toml
 ```
 
@@ -229,10 +233,10 @@ uv run <command>
 
 ```bash
 # 啟動開發伺服器（自動重載）
-uv run uvicorn agent_demo.main:app --reload
+uv run uvicorn agent_app.main:app --reload
 
 # 啟動並指定 port
-uv run uvicorn agent_demo.main:app --reload --port 8000
+uv run uvicorn agent_app.main:app --reload --port 8000
 ```
 
 ### 執行測試
