@@ -12,6 +12,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
+import allure
 import pytest
 
 # --- 輔助工具 ---
@@ -81,9 +82,12 @@ def _make_mock_stream(
     return ctx
 
 
+@allure.feature('LLM Provider 抽象層')
+@allure.story('Provider 應支援串流')
 class TestAnthropicProviderStream:
     """Rule: Provider 應封裝 LLM 特定邏輯。"""
 
+    @allure.title('Anthropic Provider 串流回應')
     async def test_stream_text_response(self) -> None:
         """Scenario: Anthropic Provider 串流回應。"""
         from agent_core.config import ProviderConfig
@@ -114,6 +118,7 @@ class TestAnthropicProviderStream:
         assert len(final.content) == 1
         assert final.content[0]['type'] == 'text'
 
+    @allure.title('Anthropic Provider 處理工具調用')
     async def test_stream_tool_use_response(self) -> None:
         """Scenario: Anthropic Provider 處理工具調用。"""
         from agent_core.config import ProviderConfig
@@ -149,6 +154,7 @@ class TestAnthropicProviderStream:
         assert final.content[1]['type'] == 'tool_use'
         assert final.content[1]['name'] == 'read_file'
 
+    @allure.title('串流完成後應回傳 usage 資訊')
     async def test_stream_returns_usage_info(self) -> None:
         """串流完成後應回傳 usage 資訊。"""
         from agent_core.config import ProviderConfig
@@ -182,9 +188,12 @@ class TestAnthropicProviderStream:
         assert final.usage.cache_read_input_tokens == 20
 
 
+@allure.feature('LLM Provider 抽象層')
+@allure.story('Provider 應將錯誤轉換為特定例外')
 class TestAnthropicProviderErrors:
     """Rule: Provider 應轉換特定例外為通用例外。"""
 
+    @allure.title('API 金鑰無效 → ProviderAuthError')
     async def test_auth_error(self) -> None:
         """Scenario: API 金鑰無效 → ProviderAuthError。"""
         from anthropic import AuthenticationError
@@ -217,6 +226,7 @@ class TestAnthropicProviderErrors:
                 async for _ in result.text_stream:
                     pass
 
+    @allure.title('API 連線失敗 → ProviderConnectionError')
     async def test_connection_error(self) -> None:
         """Scenario: API 連線失敗 → ProviderConnectionError。"""
         from anthropic import APIConnectionError
@@ -243,6 +253,7 @@ class TestAnthropicProviderErrors:
                 async for _ in result.text_stream:
                     pass
 
+    @allure.title('API 回應超時 → ProviderTimeoutError')
     async def test_timeout_error(self) -> None:
         """Scenario: API 回應超時 → ProviderTimeoutError。"""
         from anthropic import APITimeoutError
@@ -270,9 +281,12 @@ class TestAnthropicProviderErrors:
                     pass
 
 
+@allure.feature('LLM Provider 抽象層')
+@allure.story('Provider 應支援 Prompt Caching')
 class TestAnthropicProviderCaching:
     """Rule: Anthropic Provider 應支援 Prompt Caching。"""
 
+    @allure.title('在 system prompt 加上 cache_control')
     def test_system_prompt_cache_control(self) -> None:
         """Scenario: 在 system prompt 加上 cache_control。"""
         from agent_core.config import ProviderConfig
@@ -290,6 +304,7 @@ class TestAnthropicProviderCaching:
         assert isinstance(kwargs['system'], list)
         assert kwargs['system'][0]['cache_control'] == {'type': 'ephemeral'}
 
+    @allure.title('在工具定義最後加上 cache_control')
     def test_tools_cache_control(self) -> None:
         """Scenario: 在工具定義最後加上 cache_control。"""
         from agent_core.config import ProviderConfig
@@ -313,6 +328,7 @@ class TestAnthropicProviderCaching:
         assert 'cache_control' not in kwargs['tools'][0]
         assert kwargs['tools'][1]['cache_control'] == {'type': 'ephemeral'}
 
+    @allure.title('停用 Prompt Caching')
     def test_caching_disabled(self) -> None:
         """Scenario: 停用 Prompt Caching。"""
         from agent_core.config import ProviderConfig

@@ -13,6 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 
 from agent_core.session.sqlite_backend import SQLiteSessionBackend
@@ -47,9 +48,12 @@ def _sample_conversation() -> list[dict[str, Any]]:
 # =============================================================================
 
 
+@allure.feature('Session 後端抽象')
+@allure.story('SQLite 後端應支援基本 CRUD 操作')
 class TestSQLiteBasicCRUD:
     """測試 SQLite 後端基本 CRUD 操作。"""
 
+    @allure.title('儲存並讀取對話歷史')
     async def test_save_and_load(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 儲存並讀取對話歷史。"""
         conversation = _sample_conversation()
@@ -59,12 +63,14 @@ class TestSQLiteBasicCRUD:
 
         assert result == conversation
 
+    @allure.title('讀取不存在的 session')
     async def test_load_nonexistent_session(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 讀取不存在的 session。"""
         result = await backend.load('not-exist')
 
         assert result == []
 
+    @allure.title('重設 session')
     async def test_reset_session(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 重設 session。"""
         await backend.save('abc', _sample_conversation())
@@ -74,6 +80,7 @@ class TestSQLiteBasicCRUD:
         result = await backend.load('abc')
         assert result == []
 
+    @allure.title('覆寫已存在的 session 資料')
     async def test_save_overwrites_existing(self, backend: SQLiteSessionBackend) -> None:
         """覆寫已存在的 session 資料。"""
         await backend.save('abc', [{'role': 'user', 'content': 'first'}])
@@ -90,9 +97,12 @@ class TestSQLiteBasicCRUD:
 # =============================================================================
 
 
+@allure.feature('Session 後端抽象')
+@allure.story('SQLite 後端應跨程序存活')
 class TestSQLitePersistence:
     """測試 SQLite 後端跨程序持久化。"""
 
+    @allure.title('關閉後重新開啟仍保留資料')
     async def test_data_survives_reopen(self, db_path: Path) -> None:
         """Scenario: 關閉後重新開啟仍保留資料。"""
         conversation = _sample_conversation()
@@ -113,9 +123,12 @@ class TestSQLitePersistence:
 # =============================================================================
 
 
+@allure.feature('Session 後端抽象')
+@allure.story('SQLite 後端應支援多 session 隔離')
 class TestSQLiteSessionIsolation:
     """測試多 session 隔離。"""
 
+    @allure.title('不同 session 的資料互不影響')
     async def test_different_sessions_isolated(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 不同 session 的資料互不影響。"""
         await backend.save('s1', [{'role': 'user', 'content': 'A'}])
@@ -127,6 +140,7 @@ class TestSQLiteSessionIsolation:
         assert result_1[0]['content'] == 'A'
         assert result_2[0]['content'] == 'B'
 
+    @allure.title('重設單一 session 不影響其他')
     async def test_reset_one_session_preserves_others(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 重設單一 session 不影響其他。"""
         await backend.save('s1', [{'role': 'user', 'content': 'A'}])
@@ -143,9 +157,12 @@ class TestSQLiteSessionIsolation:
 # =============================================================================
 
 
+@allure.feature('Session 後端抽象')
+@allure.story('SQLite 後端應正確序列化複雜訊息結構')
 class TestSQLiteComplexMessages:
     """測試複雜訊息結構的序列化。"""
 
+    @allure.title('儲存包含 tool_use 與 tool_result 的對話')
     async def test_tool_use_and_tool_result_preserved(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 儲存包含 tool_use 與 tool_result 的對話。"""
         conversation: list[dict[str, Any]] = [
@@ -200,9 +217,12 @@ class TestSQLiteComplexMessages:
 # =============================================================================
 
 
+@allure.feature('Session 後端抽象')
+@allure.story('SQLite 後端應支援列出與刪除 session')
 class TestSQLiteSessionManagement:
     """測試 session 列出與刪除。"""
 
+    @allure.title('列出所有 session')
     async def test_list_sessions_returns_summaries(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 列出所有 session。"""
         await backend.save('s1', [{'role': 'user', 'content': 'A'}])
@@ -233,6 +253,7 @@ class TestSQLiteSessionManagement:
         assert s1_summary['message_count'] == 1
         assert s2_summary['message_count'] == 2
 
+    @allure.title('無 session 時列出回傳空列表')
     async def test_list_sessions_empty(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 無 session 時列出回傳空列表。"""
         sessions = await backend.list_sessions()
@@ -264,15 +285,19 @@ class TestSQLiteSessionManagement:
         sessions = await backend.list_sessions()
         assert all(s['session_id'] != 'abc' for s in sessions)
 
+    @allure.title('刪除不存在的 session 不應報錯')
     async def test_delete_nonexistent_session_no_error(self, backend: SQLiteSessionBackend) -> None:
         """Scenario: 刪除不存在的 session 不應報錯。"""
         # 不應拋出例外
         await backend.delete_session('not-exist')
 
 
+@allure.feature('Session 後端抽象')
+@allure.story('SQLite 後端應符合 Protocol')
 class TestSQLiteProtocolCompliance:
     """測試 SQLiteSessionBackend 符合 SessionBackend Protocol。"""
 
+    @allure.title('SQLiteSessionBackend 應符合 SessionBackend Protocol')
     async def test_implements_session_backend_protocol(self, backend: SQLiteSessionBackend) -> None:
         """SQLiteSessionBackend 應符合 SessionBackend Protocol。"""
         from agent_core.session.base import SessionBackend

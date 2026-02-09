@@ -9,6 +9,8 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import AsyncMock
 
+import allure
+
 from agent_core.compact import (
     COMPACT_THRESHOLD,
     TRUNCATED_MARKER,
@@ -84,9 +86,12 @@ def _make_conversation_with_tools() -> list[dict[str, Any]]:
 # =============================================================================
 
 
+@allure.feature('上下文壓縮（Compact）')
+@allure.story('應截斷舊的工具結果以釋放空間（Phase 1）')
 class TestTruncateToolResults:
     """測試 Phase 1: tool_result 截斷。"""
 
+    @allure.title('截斷舊的 tool_result 內容')
     def test_truncate_old_tool_results(self) -> None:
         """Scenario: 截斷舊的 tool_result 內容。"""
         conversation = _make_conversation_with_tools()
@@ -104,6 +109,7 @@ class TestTruncateToolResults:
         tool_result_2 = conversation[6]['content'][0]
         assert tool_result_2['content'] == TRUNCATED_MARKER
 
+    @allure.title('保留最近一輪的 tool_result')
     def test_truncate_preserves_recent_tool_results(self) -> None:
         """Scenario: 保留最近一輪的 tool_result。"""
         conversation = _make_conversation_with_tools()
@@ -114,6 +120,7 @@ class TestTruncateToolResults:
         tool_result_3 = conversation[10]['content'][0]
         assert tool_result_3['content'] == '最新的工具結果'
 
+    @allure.title('對應的 tool_use block 應保留不變')
     def test_truncate_preserves_tool_use_blocks(self) -> None:
         """對應的 tool_use block 應保留不變。"""
         conversation = _make_conversation_with_tools()
@@ -125,6 +132,7 @@ class TestTruncateToolResults:
         assert tool_use_1['type'] == 'tool_use'
         assert tool_use_1['id'] == 'tool_1'
 
+    @allure.title('無 tool_result 時不變')
     def test_truncate_no_tool_results_unchanged(self) -> None:
         """Scenario: 無 tool_result 時不變。"""
         conversation = [
@@ -137,6 +145,7 @@ class TestTruncateToolResults:
         assert truncated_count == 0
         assert conversation[0]['content'] == '你好'
 
+    @allure.title('已經被截斷過的 tool_result 不應重複計算')
     def test_truncate_already_truncated_not_counted(self) -> None:
         """已經被截斷過的 tool_result 不應重複計算。"""
         conversation = _make_conversation_with_tools()
@@ -155,9 +164,12 @@ class TestTruncateToolResults:
 # =============================================================================
 
 
+@allure.feature('上下文壓縮（Compact）')
+@allure.story('應用 LLM 摘要早期對話以進一步壓縮（Phase 2）')
 class TestSummarizeConversation:
     """測試 Phase 2: LLM 摘要。"""
 
+    @allure.title('摘要早期對話')
     async def test_summarize_early_conversation(self) -> None:
         """Scenario: 摘要早期對話。"""
         conversation = [
@@ -199,6 +211,7 @@ class TestSummarizeConversation:
         expected = {'role': 'assistant', 'content': [{'type': 'text', 'text': '最新回答'}]}
         assert conversation[5] == expected
 
+    @allure.title('保留最近的訊息不被摘要')
     async def test_summarize_preserves_recent_messages(self) -> None:
         """Scenario: 保留最近的訊息不被摘要。"""
         conversation = [
@@ -226,6 +239,7 @@ class TestSummarizeConversation:
         assert conversation[-2]['content'] == '新問題'
         assert conversation[-1]['content'] == [{'type': 'text', 'text': '新回答'}]
 
+    @allure.title('訊息數不足時不應進行摘要')
     async def test_summarize_not_enough_messages_to_summarize(self) -> None:
         """訊息數不足時不應進行摘要。"""
         conversation = [
@@ -246,6 +260,7 @@ class TestSummarizeConversation:
         assert summary is None
         mock_provider.create.assert_not_called()
 
+    @allure.title('摘要切點應在完整 conversation round 邊界，不拆散 tool_use/tool_result 配對')
     async def test_summarize_respects_tool_use_boundaries(self) -> None:
         """摘要切點應在完整 conversation round 邊界，不拆散 tool_use/tool_result 配對。"""
         conversation = [
@@ -284,9 +299,12 @@ class TestSummarizeConversation:
 # =============================================================================
 
 
+@allure.feature('上下文壓縮（Compact）')
+@allure.story('Compact 流程應按階段執行')
 class TestCompactConversation:
     """測試完整 compact 流程。"""
 
+    @allure.title('Phase 1 足夠時不觸發 Phase 2')
     async def test_compact_phase1_sufficient(self) -> None:
         """Scenario: Phase 1 足夠時不觸發 Phase 2。"""
         conversation = _make_conversation_with_tools()
@@ -309,6 +327,7 @@ class TestCompactConversation:
         # Phase 2 不應被呼叫
         mock_provider.create.assert_not_called()
 
+    @allure.title('Phase 1 不足時觸發 Phase 2')
     async def test_compact_full_pipeline(self) -> None:
         """Scenario: Phase 1 不足時觸發 Phase 2。"""
         # 建立較長的對話，Phase 1 截斷後仍然超過閾值
@@ -343,6 +362,7 @@ class TestCompactConversation:
         assert result['summarized'] is True
         assert result['summary'] == '對話摘要內容'
 
+    @allure.title('低於閾值時不應執行任何壓縮')
     async def test_compact_below_threshold_does_nothing(self) -> None:
         """低於閾值時不應執行任何壓縮。"""
         conversation = _make_conversation_with_tools()
@@ -363,10 +383,12 @@ class TestCompactConversation:
         assert result['truncated'] == 0
         assert result['summarized'] is False
 
+    @allure.title('COMPACT_THRESHOLD 應為 80.0')
     def test_compact_threshold_value(self) -> None:
         """COMPACT_THRESHOLD 應為 80.0。"""
         assert COMPACT_THRESHOLD == 80.0
 
+    @allure.title('TRUNCATED_MARKER 應為預期的壓縮標記')
     def test_truncated_marker_value(self) -> None:
         """TRUNCATED_MARKER 應為預期的壓縮標記。"""
         assert TRUNCATED_MARKER == '[已壓縮的工具結果]'

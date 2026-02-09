@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import allure
 import pytest
 
 from agent_core.tools.registry import ToolRegistry
@@ -53,9 +54,12 @@ def _register_tool(registry: ToolRegistry, name: str = 'big_tool', size: int = 3
 # =============================================================================
 
 
+@allure.feature('Tool Result 分頁')
+@allure.story('小結果應直接回傳，不受影響')
 class TestSmallResultPassthrough:
     """測試小結果不受分頁影響。"""
 
+    @allure.title('工具結果未超過上限。')
     async def test_small_result_returned_as_is(self, registry: ToolRegistry) -> None:
         """Scenario: 工具結果未超過上限。
 
@@ -79,9 +83,12 @@ class TestSmallResultPassthrough:
 # =============================================================================
 
 
+@allure.feature('Tool Result 分頁')
+@allure.story('超大結果應自動分頁並提供 read_more 機制')
 class TestLargeResultPagination:
     """測試超大結果的自動分頁。"""
 
+    @allure.title('工具結果超過上限時回傳第一頁。')
     async def test_large_result_returns_first_page(self, registry: ToolRegistry) -> None:
         """Scenario: 工具結果超過上限時回傳第一頁。
 
@@ -105,6 +112,7 @@ class TestLargeResultPagination:
         # 暫存區應有一筆
         assert registry.get_paginated_result_count() == 1
 
+    @allure.title('透過 read_more 取得後續頁面。')
     async def test_read_more_returns_second_page(self, registry: ToolRegistry) -> None:
         """Scenario: 透過 read_more 取得後續頁面。
 
@@ -125,6 +133,7 @@ class TestLargeResultPagination:
         assert 'x' * TEST_MAX_RESULT_CHARS in second_page
         assert '2' in second_page  # 第 2 頁
 
+    @allure.title('透過 read_more 取得最後一頁。')
     async def test_read_more_returns_last_page(self, registry: ToolRegistry) -> None:
         """Scenario: 透過 read_more 取得最後一頁。
 
@@ -150,9 +159,12 @@ class TestLargeResultPagination:
 # =============================================================================
 
 
+@allure.feature('Tool Result 分頁')
+@allure.story('read_more 應處理無效請求')
 class TestReadMoreErrorHandling:
     """測試 read_more 的錯誤處理。"""
 
+    @allure.title('查詢不存在的 result_id。')
     def test_read_more_invalid_result_id(self, registry: ToolRegistry) -> None:
         """Scenario: 查詢不存在的 result_id。
 
@@ -163,6 +175,7 @@ class TestReadMoreErrorHandling:
 
         assert '不存在' in result or '過期' in result
 
+    @allure.title('查詢超出範圍的頁數。')
     async def test_read_more_page_out_of_range(self, registry: ToolRegistry) -> None:
         """Scenario: 查詢超出範圍的頁數。
 
@@ -184,6 +197,8 @@ class TestReadMoreErrorHandling:
 # =============================================================================
 
 
+@allure.feature('Tool Result 分頁')
+@allure.story('暫存區應有生命週期管理')
 class TestPaginationLifecycle:
     """測試暫存區生命週期。"""
 
@@ -205,6 +220,7 @@ class TestPaginationLifecycle:
 
         assert page1_first == page1_second
 
+    @allure.title('清除暫存區。')
     async def test_clear_paginated_results(self, registry: ToolRegistry) -> None:
         """Scenario: 清除暫存區。
 

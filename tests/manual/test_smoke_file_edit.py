@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -38,9 +39,12 @@ def sandbox_dir(tmp_path: Path) -> Path:
     return sandbox
 
 
+@allure.feature('檔案編輯工具')
+@allure.story('驗證 Agent 能透過工具編輯檔案 (Smoke)')
 class TestSmokeFileEdit:
     """Smoke test - 驗證 Agent 能透過工具編輯檔案。"""
 
+    @allure.title('驗證 Agent 能調用 edit_file 工具並修改檔案內容')
     async def test_agent_edits_file_with_tool(self, sandbox_dir: Path) -> None:
         """驗證 Agent 能調用 edit_file 工具並修改檔案內容。"""
         registry = create_default_registry(sandbox_dir)
@@ -73,6 +77,7 @@ class TestSmokeFileEdit:
         assert 'new_function' in content
         assert 'old_function' not in content
 
+    @allure.title('驗證 Agent 能建立新檔案')
     async def test_agent_creates_new_file(self, sandbox_dir: Path) -> None:
         """驗證 Agent 能建立新檔案。"""
         registry = create_default_registry(sandbox_dir)

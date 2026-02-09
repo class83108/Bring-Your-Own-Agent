@@ -16,6 +16,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 
 # =============================================================================
@@ -76,9 +77,12 @@ def bash_handler_fn(sandbox_dir: Path) -> Any:
 # =============================================================================
 
 
+@allure.feature('Bash 命令執行功能')
+@allure.story('Agent 應能執行基本命令')
 class TestBasicExecution:
     """測試基本命令執行功能。"""
 
+    @allure.title('執行簡單命令')
     def test_execute_simple_command(self, bash_handler_fn: Any) -> None:
         """Scenario: 執行簡單命令。
 
@@ -95,6 +99,7 @@ class TestBasicExecution:
         assert result['stderr'] == ''
         assert result['command'] == 'echo "hello"'
 
+    @allure.title('執行帶參數的命令')
     def test_execute_command_with_arguments(self, bash_handler_fn: Any) -> None:
         """Scenario: 執行帶參數的命令。
 
@@ -106,6 +111,7 @@ class TestBasicExecution:
         assert result['exit_code'] == 0
         assert result['stdout'] == 'test'
 
+    @allure.title('執行管道命令')
     def test_execute_pipe_command(self, bash_handler_fn: Any) -> None:
         """Scenario: 執行管道命令。
 
@@ -126,9 +132,12 @@ class TestBasicExecution:
 # =============================================================================
 
 
+@allure.feature('Bash 命令執行功能')
+@allure.story('Agent 應確保命令執行安全性')
 class TestSecurity:
     """測試安全性檢查功能。"""
 
+    @allure.title('阻擋危險命令 - rm -rf /')
     def test_block_dangerous_command_rm_rf(self, bash_handler_fn: Any) -> None:
         """Scenario: 阻擋危險命令 - rm -rf /。
 
@@ -140,6 +149,7 @@ class TestSecurity:
         with pytest.raises(PermissionError, match='危險'):
             bash_handler_fn('rm -rf /')
 
+    @allure.title('阻擋危險命令 - dd')
     def test_block_dangerous_command_dd(self, bash_handler_fn: Any) -> None:
         """Scenario: 阻擋危險命令 - dd。
 
@@ -149,6 +159,7 @@ class TestSecurity:
         with pytest.raises(PermissionError, match='危險'):
             bash_handler_fn('dd if=/dev/zero of=/dev/sda')
 
+    @allure.title('阻擋系統修改命令')
     def test_block_system_modify_command(self, bash_handler_fn: Any) -> None:
         """Scenario: 阻擋系統修改命令。
 
@@ -159,6 +170,7 @@ class TestSecurity:
         with pytest.raises(PermissionError, match='系統修改'):
             bash_handler_fn('sudo apt-get install curl')
 
+    @allure.title('限制命令執行目錄')
     def test_restrict_working_directory(self, bash_handler_fn: Any) -> None:
         """Scenario: 限制命令執行目錄。
 
@@ -176,9 +188,12 @@ class TestSecurity:
 # =============================================================================
 
 
+@allure.feature('Bash 命令執行功能')
+@allure.story('Agent 應正確處理命令輸出')
 class TestOutputHandling:
     """測試命令輸出處理功能。"""
 
+    @allure.title('處理標準輸出')
     def test_handle_stdout(self, bash_handler_fn: Any) -> None:
         """Scenario: 處理標準輸出。
 
@@ -190,6 +205,7 @@ class TestOutputHandling:
         assert 'stdout' in result['stdout']
         assert result['stderr'] == ''
 
+    @allure.title('處理標準錯誤')
     def test_handle_stderr(self, bash_handler_fn: Any) -> None:
         """Scenario: 處理標準錯誤。
 
@@ -200,6 +216,7 @@ class TestOutputHandling:
 
         assert result['exit_code'] != 0
 
+    @allure.title('處理混合輸出')
     def test_handle_mixed_output(self, bash_handler_fn: Any) -> None:
         """Scenario: 處理混合輸出。
 
@@ -211,6 +228,7 @@ class TestOutputHandling:
         assert 'out' in result['stdout']
         assert 'err' in result['stderr']
 
+    @allure.title('處理無輸出的命令')
     def test_handle_no_output(self, bash_handler_fn: Any, sandbox_dir: Path) -> None:
         """Scenario: 處理無輸出的命令。
 
@@ -223,6 +241,7 @@ class TestOutputHandling:
         assert result['stdout'] == ''
         assert (sandbox_dir / 'empty.txt').exists()
 
+    @allure.title('處理大量輸出')
     def test_truncate_large_output(self, bash_handler_fn: Any) -> None:
         """Scenario: 處理大量輸出。
 
@@ -242,9 +261,12 @@ class TestOutputHandling:
 # =============================================================================
 
 
+@allure.feature('Bash 命令執行功能')
+@allure.story('Agent 應處理命令執行狀態')
 class TestExecutionStatus:
     """測試命令執行狀態處理功能。"""
 
+    @allure.title('命令執行成功')
     def test_command_success(self, bash_handler_fn: Any) -> None:
         """Scenario: 命令執行成功。
 
@@ -255,6 +277,7 @@ class TestExecutionStatus:
 
         assert result['exit_code'] == 0
 
+    @allure.title('命令執行失敗')
     def test_command_failure(self, bash_handler_fn: Any) -> None:
         """Scenario: 命令執行失敗。
 
@@ -265,6 +288,7 @@ class TestExecutionStatus:
 
         assert result['exit_code'] != 0
 
+    @allure.title('命令執行超時')
     def test_command_timeout(self, bash_handler_fn: Any) -> None:
         """Scenario: 命令執行超時。
 
@@ -282,9 +306,12 @@ class TestExecutionStatus:
 # =============================================================================
 
 
+@allure.feature('Bash 命令執行功能')
+@allure.story('Agent 應支援常見開發命令')
 class TestCommonCommands:
     """測試常見開發命令支援。"""
 
+    @allure.title('執行 Git 命令')
     def test_git_command(self, bash_handler_fn: Any) -> None:
         """Scenario: 執行 Git 命令。
 
@@ -297,6 +324,7 @@ class TestCommonCommands:
         # Git 初始狀態應顯示相關訊息
         assert len(result['stdout']) > 0
 
+    @allure.title('執行測試命令')
     def test_pytest_command(self, bash_handler_fn: Any) -> None:
         """Scenario: 執行測試命令。
 
@@ -309,6 +337,7 @@ class TestCommonCommands:
         assert result['exit_code'] == 0
         assert 'Python' in result['stdout'] or 'Python' in result['stderr']
 
+    @allure.title('執行 linting 命令')
     def test_linting_command(self, bash_handler_fn: Any, sandbox_dir: Path) -> None:
         """Scenario: 執行 linting 命令。
 
@@ -328,9 +357,12 @@ class TestCommonCommands:
 # =============================================================================
 
 
+@allure.feature('Bash 命令執行功能')
+@allure.story('Agent 應正確處理環境')
 class TestEnvironment:
     """測試環境處理功能。"""
 
+    @allure.title('使用正確的工作目錄')
     def test_use_correct_working_directory(
         self,
         bash_handler_fn: Any,
@@ -347,6 +379,7 @@ class TestEnvironment:
         # 輸出應為 sandbox 目錄
         assert str(sandbox_dir) in result['stdout']
 
+    @allure.title('存取環境變數')
     def test_access_environment_variables(self, bash_handler_fn: Any) -> None:
         """Scenario: 存取環境變數。
 
@@ -359,6 +392,7 @@ class TestEnvironment:
         assert result['exit_code'] == 0
         assert len(result['stdout']) > 0
 
+    @allure.title('隔離敏感環境變數')
     def test_mask_sensitive_information(self, bash_handler_fn: Any) -> None:
         """Scenario: 隔離敏感環境變數。
 
@@ -372,6 +406,7 @@ class TestEnvironment:
         assert 'sk-ant-api03' not in result['stdout']
         assert '[ANTHROPIC_API_KEY]' in result['stdout']
 
+    @allure.title('Git 命令被限制在 sandbox 內')
     def test_git_isolated_to_sandbox(
         self,
         bash_handler_fn: Any,

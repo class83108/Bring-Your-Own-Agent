@@ -13,6 +13,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
+import allure
+
 from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig, ProviderConfig
 from agent_core.providers.base import FinalMessage, StreamResult, UsageInfo
@@ -103,9 +105,12 @@ async def collect_stream_with_events(
 # =============================================================================
 
 
+@allure.feature('工具使用狀態顯示')
+@allure.story('工具狀態應顯示名稱與參數摘要')
 class TestToolSummary:
     """測試工具摘要產生。"""
 
+    @allure.title('讀取檔案時顯示檔案路徑')
     def test_read_file_summary(self) -> None:
         """Scenario: 讀取檔案時顯示檔案路徑。"""
         from agent_core.tool_summary import get_tool_summary
@@ -113,6 +118,7 @@ class TestToolSummary:
         summary = get_tool_summary('read_file', {'path': 'src/main.py'})
         assert summary == '讀取檔案 src/main.py'
 
+    @allure.title('搜尋程式碼時顯示搜尋模式')
     def test_grep_search_summary(self) -> None:
         """Scenario: 搜尋程式碼時顯示搜尋模式。"""
         from agent_core.tool_summary import get_tool_summary
@@ -120,6 +126,7 @@ class TestToolSummary:
         summary = get_tool_summary('grep_search', {'pattern': 'logger'})
         assert summary == '搜尋程式碼 logger'
 
+    @allure.title('編輯檔案時顯示檔案路徑')
     def test_edit_file_summary(self) -> None:
         """Scenario: 編輯檔案時顯示檔案路徑。"""
         from agent_core.tool_summary import get_tool_summary
@@ -127,6 +134,7 @@ class TestToolSummary:
         summary = get_tool_summary('edit_file', {'path': 'src/main.py'})
         assert summary == '編輯檔案 src/main.py'
 
+    @allure.title('執行命令時顯示命令摘要')
     def test_bash_summary(self) -> None:
         """Scenario: 執行命令時顯示命令摘要。"""
         from agent_core.tool_summary import get_tool_summary
@@ -134,6 +142,7 @@ class TestToolSummary:
         summary = get_tool_summary('bash', {'command': 'uv run pytest'})
         assert summary == '執行命令 uv run pytest'
 
+    @allure.title('列出檔案時顯示路徑')
     def test_list_files_summary(self) -> None:
         """Scenario: 列出檔案時顯示路徑。"""
         from agent_core.tool_summary import get_tool_summary
@@ -141,6 +150,7 @@ class TestToolSummary:
         summary = get_tool_summary('list_files', {'path': 'src/'})
         assert summary == '列出檔案 src/'
 
+    @allure.title('未知工具應顯示工具名稱')
     def test_unknown_tool_summary(self) -> None:
         """未知工具應顯示工具名稱。"""
         from agent_core.tool_summary import get_tool_summary
@@ -148,6 +158,7 @@ class TestToolSummary:
         summary = get_tool_summary('custom_tool', {'key': 'value'})
         assert 'custom_tool' in summary
 
+    @allure.title('過長的命令參數應截斷顯示')
     def test_long_command_truncated(self) -> None:
         """過長的命令參數應截斷顯示。"""
         from agent_core.tool_summary import get_tool_summary
@@ -162,9 +173,12 @@ class TestToolSummary:
 # =============================================================================
 
 
+@allure.feature('工具使用狀態顯示')
+@allure.story('Agent 呼叫工具時應通知使用者')
 class TestToolCallEvents:
     """測試工具呼叫事件產生。"""
 
+    @allure.title('工具成功執行時產生 started 和 completed 事件')
     async def test_tool_call_emits_started_and_completed(self) -> None:
         """Scenario: 工具成功執行時產生 started 和 completed 事件。"""
         registry = ToolRegistry()
@@ -213,6 +227,7 @@ class TestToolCallEvents:
         assert completed['data']['status'] == 'completed'
         assert completed['data']['name'] == 'read_file'
 
+    @allure.title('工具執行失敗時產生 failed 事件')
     async def test_tool_call_failure_emits_failed_event(self) -> None:
         """Scenario: 工具執行失敗時產生 failed 事件。"""
 
@@ -268,9 +283,12 @@ class TestToolCallEvents:
 # =============================================================================
 
 
+@allure.feature('工具使用狀態顯示')
+@allure.story('工具呼叫前的文字應與最終回覆區隔')
 class TestPreambleEvents:
     """測試 preamble_end 事件。"""
 
+    @allure.title('Preamble 文字應觸發 preamble_end 事件')
     async def test_preamble_end_emitted_when_text_before_tool(self) -> None:
         """Scenario: Preamble 文字應觸發 preamble_end 事件。"""
         registry = ToolRegistry()
@@ -315,6 +333,7 @@ class TestPreambleEvents:
         tool_idx = event_types.index('tool_call')
         assert preamble_idx < tool_idx
 
+    @allure.title('無 preamble 文字時不應產生 preamble_end 事件')
     async def test_no_preamble_when_no_text_before_tool(self) -> None:
         """Scenario: 無 preamble 文字時不應產生 preamble_end 事件。"""
         registry = ToolRegistry()
@@ -353,6 +372,7 @@ class TestPreambleEvents:
         preamble_events = [e for e in events if e['type'] == 'preamble_end']
         assert len(preamble_events) == 0
 
+    @allure.title('多次工具呼叫產生多個 preamble')
     async def test_multiple_tool_calls_produce_multiple_preambles(self) -> None:
         """Scenario: 多次工具呼叫產生多個 preamble。"""
         registry = ToolRegistry()

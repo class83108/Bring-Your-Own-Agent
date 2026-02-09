@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 from unittest.mock import AsyncMock
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -211,9 +212,12 @@ def _get_assistant_text(conversation_entry: dict[str, Any]) -> str:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent 應驗證使用者輸入')
 class TestInputValidation:
     """測試使用者輸入驗證。"""
 
+    @allure.title('使用者發送空白訊息')
     async def test_empty_message_raises_value_error(self) -> None:
         """Scenario: 使用者發送空白訊息。"""
         provider = MockProvider([([], _make_final_message())])
@@ -223,6 +227,7 @@ class TestInputValidation:
             async for _ in agent.stream_message(''):
                 pass
 
+    @allure.title('測試只有空白字元的訊息也應拋出 ValueError')
     async def test_whitespace_only_raises_value_error(self) -> None:
         """測試只有空白字元的訊息也應拋出 ValueError。"""
         provider = MockProvider([([], _make_final_message())])
@@ -242,9 +247,12 @@ class TestInputValidation:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent 應維護對話歷史')
 class TestConversationHistory:
     """測試對話歷史維護。"""
 
+    @allure.title('單輪對話後歷史正確記錄')
     async def test_single_turn_conversation_history(self) -> None:
         """Scenario: 單輪對話後歷史正確記錄。"""
         provider = MockProvider([(['回應內容'], _make_final_message('回應內容'))])
@@ -258,6 +266,7 @@ class TestConversationHistory:
         assert agent.conversation[1]['role'] == 'assistant'
         assert _get_assistant_text(agent.conversation[1]) == '回應內容'
 
+    @allure.title('多輪對話後歷史正確累積')
     async def test_multi_turn_conversation_history(self) -> None:
         """Scenario: 多輪對話後歷史正確累積。"""
         provider = MockProvider(
@@ -277,6 +286,7 @@ class TestConversationHistory:
         assert agent.conversation[2]['content'] == '第二則訊息'
         assert _get_assistant_text(agent.conversation[3]) == '第二次回應'
 
+    @allure.title('重設對話歷史')
     def test_reset_conversation(self) -> None:
         """Scenario: 重設對話歷史。"""
         provider = MockProvider([])
@@ -296,9 +306,12 @@ class TestConversationHistory:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent 應正確處理錯誤情況')
 class TestErrorHandling:
     """測試錯誤處理（Provider 例外）。"""
 
+    @allure.title('Provider 連線失敗')
     async def test_provider_connection_error(self) -> None:
         """Scenario: Provider 連線失敗。"""
         provider = ErrorProvider(ProviderConnectionError('連線失敗'))
@@ -311,6 +324,7 @@ class TestErrorHandling:
 
         assert len(agent.conversation) == initial_length
 
+    @allure.title('Provider 認證失敗')
     async def test_provider_auth_error(self) -> None:
         """Scenario: Provider 認證失敗。"""
         provider = ErrorProvider(ProviderAuthError('API 金鑰無效'))
@@ -323,6 +337,7 @@ class TestErrorHandling:
 
         assert len(agent.conversation) == initial_length
 
+    @allure.title('Provider 回應超時')
     async def test_provider_timeout_error(self) -> None:
         """Scenario: Provider 回應超時。"""
         provider = ErrorProvider(ProviderTimeoutError('請求超時'))
@@ -341,9 +356,12 @@ class TestErrorHandling:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent 應支援串流回應')
 class TestStreamingResponse:
     """測試串流回應功能。"""
 
+    @allure.title('串流方式逐步回傳 token')
     async def test_stream_collects_chunks_into_conversation(self) -> None:
         """Scenario: 串流方式逐步回傳 token。"""
         chunks = ['這是', '一個', '串流', '回應']
@@ -355,6 +373,7 @@ class TestStreamingResponse:
 
         assert _get_assistant_text(agent.conversation[1]) == '這是一個串流回應'
 
+    @allure.title('串流中斷時保留部分回應')
     async def test_stream_interruption_preserves_partial_response(self) -> None:
         """Scenario: 串流中斷時保留部分回應。"""
         provider = PartialStreamProvider(
@@ -380,9 +399,12 @@ class TestStreamingResponse:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent Loop 應持續運作直到任務完成')
 class TestToolUseLoop:
     """測試工具調用迴圈功能。"""
 
+    @allure.title('無 tool_registry 時行為不變')
     async def test_no_tool_registry_unchanged(self) -> None:
         """Scenario: 無 tool_registry 時行為不變。"""
         provider = MockProvider([(['回應'], _make_final_message('回應'))])
@@ -394,6 +416,7 @@ class TestToolUseLoop:
         call_kwargs = provider.call_args_list[0]
         assert call_kwargs['tools'] is None
 
+    @allure.title('單輪對話有工具調用')
     async def test_single_turn_with_tool_call(self) -> None:
         """Scenario: 單輪對話有工具調用。"""
         registry = ToolRegistry()
@@ -445,6 +468,7 @@ class TestToolUseLoop:
         assert tool_results[0]['tool_use_id'] == 'tool_1'
         assert '檔案內容: main.py' in tool_results[0]['content']
 
+    @allure.title('同時執行多個獨立工具')
     async def test_parallel_tool_calls(self) -> None:
         """Scenario: 同時執行多個獨立工具。"""
         registry = ToolRegistry()
@@ -507,6 +531,7 @@ class TestToolUseLoop:
         result_ids = {r['tool_use_id'] for r in tool_results}
         assert result_ids == {'tool_a', 'tool_b'}
 
+    @allure.title('工具執行失敗時回傳 is_error')
     async def test_tool_execution_error(self) -> None:
         """Scenario: 工具執行失敗時回傳 is_error。"""
 
@@ -559,9 +584,12 @@ class TestToolUseLoop:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent 應透過 Provider 抽象層呼叫 LLM')
 class TestProviderIntegration:
     """測試 Agent 與 Provider 的整合。"""
 
+    @allure.title('Agent 應將 system prompt 傳給 Provider')
     async def test_agent_passes_system_prompt_to_provider(self) -> None:
         """Agent 應將 system prompt 傳給 Provider。"""
         provider = MockProvider([(['Hi'], _make_final_message('Hi'))])
@@ -571,6 +599,7 @@ class TestProviderIntegration:
 
         assert provider.call_args_list[0]['system'] == '你是健身教練'
 
+    @allure.title('Agent 應將工具定義傳給 Provider')
     async def test_agent_passes_tools_to_provider(self) -> None:
         """Agent 應將工具定義傳給 Provider。"""
         registry = ToolRegistry()
@@ -597,9 +626,12 @@ class TestProviderIntegration:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent 應支援 SkillRegistry 動態組合 system prompt')
 class TestSkillRegistryIntegration:
     """測試 Agent 與 SkillRegistry 的整合。"""
 
+    @allure.title('無 SkillRegistry 時使用原始 system prompt')
     async def test_agent_without_skill_registry_uses_base_prompt(self) -> None:
         """無 SkillRegistry 時使用原始 system prompt。"""
         provider = MockProvider([(['回應'], _make_final_message('回應'))])
@@ -609,6 +641,7 @@ class TestSkillRegistryIntegration:
 
         assert provider.call_args_list[0]['system'] == '基礎 prompt'
 
+    @allure.title('SkillRegistry 為空時使用原始 system prompt')
     async def test_agent_with_empty_skill_registry_uses_base_prompt(self) -> None:
         """SkillRegistry 為空時使用原始 system prompt。"""
         provider = MockProvider([(['回應'], _make_final_message('回應'))])
@@ -627,6 +660,7 @@ class TestSkillRegistryIntegration:
 
         assert provider.call_args_list[0]['system'] == '基礎 prompt'
 
+    @allure.title('已註冊的 Skill 描述應出現在 system prompt（Phase 1）')
     async def test_agent_with_registered_skill_includes_description(self) -> None:
         """已註冊的 Skill 描述應出現在 system prompt（Phase 1）。"""
         provider = MockProvider([(['回應'], _make_final_message('回應'))])
@@ -657,6 +691,7 @@ class TestSkillRegistryIntegration:
         # Phase 2 未啟用，不應包含完整 instructions
         assert '詳細審查指令' not in system
 
+    @allure.title('啟用的 Skill 應注入完整 instructions（Phase 2）')
     async def test_agent_with_active_skill_includes_instructions(self) -> None:
         """啟用的 Skill 應注入完整 instructions（Phase 2）。"""
         provider = MockProvider([(['回應'], _make_final_message('回應'))])
@@ -692,9 +727,12 @@ class TestSkillRegistryIntegration:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent 應在每次 API 回應後更新 TokenCounter')
 class TestTokenCounterIntegration:
     """測試 Agent 與 TokenCounter 的整合。"""
 
+    @allure.title('API 回應後 token_counter 應被更新')
     async def test_token_counter_updated_after_response(self) -> None:
         """API 回應後 token_counter 應被更新。"""
         usage = UsageInfo(input_tokens=1000, output_tokens=500)
@@ -711,6 +749,7 @@ class TestTokenCounterIntegration:
         assert agent.token_counter is not None
         assert agent.token_counter.current_context_tokens == 1500
 
+    @allure.title('含快取 token 的回應也應正確更新 token_counter')
     async def test_token_counter_updated_with_cache_tokens(self) -> None:
         """含快取 token 的回應也應正確更新 token_counter。"""
         usage = UsageInfo(
@@ -733,6 +772,7 @@ class TestTokenCounterIntegration:
         assert agent.token_counter is not None
         assert agent.token_counter.current_context_tokens == 1400
 
+    @allure.title('token_counter 為 None 時不應報錯')
     async def test_token_counter_disabled(self) -> None:
         """token_counter 為 None 時不應報錯。"""
         provider = MockProvider([(['回應'], _make_final_message('回應'))])
@@ -748,6 +788,7 @@ class TestTokenCounterIntegration:
         # 應正常執行，不拋出異常
         await collect_stream(agent, '測試')
 
+    @allure.title('工具迴圈中 token_counter 應反映最後一次 API 呼叫的 token 數')
     async def test_token_counter_reflects_latest_call_in_tool_loop(self) -> None:
         """工具迴圈中 token_counter 應反映最後一次 API 呼叫的 token 數。"""
         registry = ToolRegistry()
@@ -800,9 +841,12 @@ class TestTokenCounterIntegration:
 # =============================================================================
 
 
+@allure.feature('基礎聊天功能')
+@allure.story('Agent 應在適當時機自動觸發 compact')
 class TestCompactIntegration:
     """測試 Agent 與 Compact 的整合。"""
 
+    @allure.title('超過閾值時自動觸發 compact')
     async def test_compact_triggered_when_threshold_exceeded(self) -> None:
         """Scenario: 超過閾值時自動觸發 compact。"""
         # 設定兩輪回應：第一輪正常，第二輪觸發 compact
@@ -851,6 +895,7 @@ class TestCompactIntegration:
         compact_events = [e for e in events if e.get('type') == 'compact']
         assert len(compact_events) > 0
 
+    @allure.title('未超過閾值時不觸發 compact')
     async def test_compact_not_triggered_below_threshold(self) -> None:
         """Scenario: 未超過閾值時不觸發 compact。"""
         final_msg = FinalMessage(
@@ -871,6 +916,7 @@ class TestCompactIntegration:
         compact_events = [e for e in events if e.get('type') == 'compact']
         assert len(compact_events) == 0
 
+    @allure.title('compact 時應 yield SSE 事件通知前端')
     async def test_compact_yields_events(self) -> None:
         """compact 時應 yield SSE 事件通知前端。"""
         # 手動設定高 usage，讓下一輪觸發 compact

@@ -14,6 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 
 # =============================================================================
@@ -195,9 +196,12 @@ def grep_search(sandbox_dir: Path) -> Any:
 # =============================================================================
 
 
+@allure.feature('程式碼搜尋功能')
+@allure.story('Agent 應能搜尋程式碼內容')
 class TestBasicSearch:
     """測試基本搜尋功能。"""
 
+    @allure.title('搜尋特定字串')
     def test_search_simple_string(self, grep_search: Any) -> None:
         """Scenario: 搜尋特定字串。
 
@@ -215,6 +219,7 @@ class TestBasicSearch:
         assert 'src/main.py' in files
         assert 'src/utils/helpers.py' in files
 
+    @allure.title('搜尋函數定義')
     def test_search_function_definition(self, grep_search: Any) -> None:
         """Scenario: 搜尋函數定義。
 
@@ -230,6 +235,7 @@ class TestBasicSearch:
         assert match['line_number'] > 0
         assert 'def process_data' in match['line_content']
 
+    @allure.title('搜尋類別定義')
     def test_search_class_definition(self, grep_search: Any) -> None:
         """Scenario: 搜尋類別定義。
 
@@ -244,6 +250,7 @@ class TestBasicSearch:
         assert match['file'] == 'src/main.py'
         assert 'class UserService' in match['line_content']
 
+    @allure.title('搜尋無結果')
     def test_search_no_results(self, grep_search: Any) -> None:
         """Scenario: 搜尋無結果。
 
@@ -261,9 +268,12 @@ class TestBasicSearch:
 # =============================================================================
 
 
+@allure.feature('程式碼搜尋功能')
+@allure.story('Agent 應支援正則表達式搜尋')
 class TestRegexSearch:
     """測試正則表達式搜尋。"""
 
+    @allure.title('使用簡單正則表達式')
     def test_regex_or_pattern(self, grep_search: Any) -> None:
         """Scenario: 使用簡單正則表達式。
 
@@ -278,6 +288,7 @@ class TestRegexSearch:
         assert any('TODO' in c for c in contents)
         assert any('FIXME' in c for c in contents)
 
+    @allure.title('搜尋特定模式的函數')
     def test_regex_function_pattern(self, grep_search: Any) -> None:
         """Scenario: 搜尋特定模式的函數。
 
@@ -298,9 +309,12 @@ class TestRegexSearch:
 # =============================================================================
 
 
+@allure.feature('程式碼搜尋功能')
+@allure.story('Agent 應支援搜尋範圍限制')
 class TestSearchScope:
     """測試搜尋範圍限制。"""
 
+    @allure.title('限制搜尋特定目錄')
     def test_limit_to_directory(self, grep_search: Any) -> None:
         """Scenario: 限制搜尋特定目錄。
 
@@ -313,6 +327,7 @@ class TestSearchScope:
         for match in result['matches']:
             assert match['file'].startswith('src/')
 
+    @allure.title('限制搜尋特定檔案類型')
     def test_limit_to_file_type(self, grep_search: Any) -> None:
         """Scenario: 限制搜尋特定檔案類型。
 
@@ -325,6 +340,7 @@ class TestSearchScope:
         for match in result['matches']:
             assert match['file'].endswith('.py')
 
+    @allure.title('排除特定目錄')
     def test_exclude_directory(self, grep_search: Any) -> None:
         """Scenario: 排除特定目錄。
 
@@ -337,6 +353,7 @@ class TestSearchScope:
         for match in result['matches']:
             assert not match['file'].startswith('tests/')
 
+    @allure.title('排除常見非程式碼目錄')
     def test_exclude_common_directories(self, grep_search: Any) -> None:
         """Scenario: 排除常見非程式碼目錄。
 
@@ -357,9 +374,12 @@ class TestSearchScope:
 # =============================================================================
 
 
+@allure.feature('程式碼搜尋功能')
+@allure.story('Agent 應格式化搜尋結果')
 class TestResultFormatting:
     """測試搜尋結果格式化。"""
 
+    @allure.title('顯示匹配行與檔案路徑')
     def test_result_contains_file_path(self, grep_search: Any) -> None:
         """Scenario: 顯示匹配行與檔案路徑。
 
@@ -372,6 +392,7 @@ class TestResultFormatting:
         assert 'file' in match
         assert match['file'] == 'src/main.py'
 
+    @allure.title('顯示行號')
     def test_result_contains_line_number(self, grep_search: Any) -> None:
         """Scenario: 顯示行號。
 
@@ -385,6 +406,7 @@ class TestResultFormatting:
         assert isinstance(match['line_number'], int)
         assert match['line_number'] > 0
 
+    @allure.title('顯示匹配行的內容')
     def test_result_contains_line_content(self, grep_search: Any) -> None:
         """Scenario: 顯示匹配行的內容。
 
@@ -397,6 +419,7 @@ class TestResultFormatting:
         assert 'line_content' in match
         assert 'class UserService' in match['line_content']
 
+    @allure.title('顯示周圍上下文')
     def test_result_with_context_lines(self, grep_search: Any) -> None:
         """Scenario: 顯示周圍上下文。
 
@@ -411,6 +434,7 @@ class TestResultFormatting:
         assert len(match['context_before']) <= 2
         assert len(match['context_after']) <= 2
 
+    @allure.title('分組顯示結果')
     def test_results_grouped_by_file(self, grep_search: Any) -> None:
         """Scenario: 分組顯示結果。
 
@@ -423,6 +447,7 @@ class TestResultFormatting:
         assert 'files_summary' in result
         assert len(result['files_summary']) > 1
 
+    @allure.title('限制結果數量')
     def test_limit_results_count(self, grep_search: Any) -> None:
         """Scenario: 限制結果數量。
 

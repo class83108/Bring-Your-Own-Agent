@@ -28,6 +28,7 @@ import zlib
 from pathlib import Path
 from typing import Any, cast
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -133,9 +134,12 @@ def _create_test_png() -> bytes:
 # =============================================================================
 
 
+@allure.feature('冒煙測試')
+@allure.story('Token Counter 應在真實 API 呼叫後正確追蹤使用量 (Smoke)')
 class TestTokenCounterSmoke:
     """Smoke test — 驗證 Token Counter 在真實 API 下的行為。"""
 
+    @allure.title('對話後 token 使用量大於零')
     async def test_token_usage_greater_than_zero_after_response(self) -> None:
         """對話後 token 使用量大於零。
 
@@ -160,6 +164,7 @@ class TestTokenCounterSmoke:
         assert agent.token_counter.current_context_tokens > 0
         assert agent.token_counter.usage_percent > 0
 
+    @allure.title('多輪對話後 token 使用量累計增長')
     async def test_token_usage_accumulates_across_turns(self) -> None:
         """多輪對話後 token 使用量累計增長。
 
@@ -189,9 +194,12 @@ class TestTokenCounterSmoke:
 # =============================================================================
 
 
+@allure.feature('冒煙測試')
+@allure.story('Tool Result 分頁應在結果過大時自動觸發 (Smoke)')
 class TestToolResultPaginationSmoke:
     """Smoke test — 驗證大型工具結果會自動分頁。"""
 
+    @allure.title('讀取大檔案時自動分頁')
     async def test_large_file_auto_pagination(self, tmp_path: Path) -> None:
         """讀取大檔案時自動分頁。
 
@@ -233,9 +241,12 @@ class TestToolResultPaginationSmoke:
 # =============================================================================
 
 
+@allure.feature('冒煙測試')
+@allure.story('Compact 應在 context window 使用率高時壓縮對話 (Smoke)')
 class TestCompactSmoke:
     """Smoke test — 驗證 Compact Phase 2 LLM 摘要在真實 API 下的行為。"""
 
+    @allure.title('Phase 2 LLM 摘要 — 純文字多輪對話觸發摘要')
     async def test_compact_phase2_summary(self) -> None:
         """Phase 2 LLM 摘要 — 純文字多輪對話觸發摘要。
 
@@ -294,9 +305,12 @@ class TestCompactSmoke:
 # =============================================================================
 
 
+@allure.feature('冒煙測試')
+@allure.story('Multimodal 應支援圖片輸入 (Smoke)')
 class TestMultimodalSmoke:
     """Smoke test — 驗證圖片輸入功能。"""
 
+    @allure.title('傳送圖片並取得描述')
     async def test_send_image_and_get_description(self) -> None:
         """傳送圖片並取得描述。
 
@@ -334,9 +348,12 @@ class TestMultimodalSmoke:
 # =============================================================================
 
 
+@allure.feature('冒煙測試')
+@allure.story('Skill 應能實際改變 Agent 的回應行為 (Smoke)')
 class TestSkillSmoke:
     """Smoke test — 驗證 Skill 能改變 Agent 回應行為。"""
 
+    @allure.title('SEO Skill — 啟用後回應中應包含指定關鍵字')
     async def test_seo_skill_injects_keywords(self) -> None:
         """SEO Skill — 啟用後回應中應包含指定關鍵字。
 
@@ -382,9 +399,12 @@ class TestSkillSmoke:
 # =============================================================================
 
 
+@allure.feature('冒煙測試')
+@allure.story('MCP Server 應能透過真實 npx 啟動並提供工具 (Smoke)')
 class TestMCPServerSmoke:
     """Smoke test — 驗證真實 MCP Server 連線與工具列表。"""
 
+    @allure.title('連接真實 MCP Server 並列出工具')
     async def test_connect_real_mcp_server_and_list_tools(self) -> None:
         """連接真實 MCP Server 並列出工具。
 
@@ -429,6 +449,7 @@ class TestMCPServerSmoke:
                     assert tool.name, f'工具應有 name，實際：{tool}'  # type: ignore
                     assert tool.description, f'工具應有 description，實際：{tool.name}'  # type: ignore
 
+    @allure.title('MCP 工具應能透過 Adapter 註冊到 ToolRegistry')
     async def test_mcp_tools_register_to_agent(self) -> None:
         """MCP 工具應能透過 Adapter 註冊到 ToolRegistry。
 

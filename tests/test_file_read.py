@@ -13,6 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 
 # =============================================================================
@@ -82,9 +83,12 @@ def read_file(sandbox_dir: Path) -> Any:
 # =============================================================================
 
 
+@allure.feature('讀取檔案功能')
+@allure.story('Agent 應能讀取指定檔案')
 class TestReadFile:
     """測試基本檔案讀取功能。"""
 
+    @allure.title('讀取存在的文字檔案')
     def test_read_existing_file(self, read_file: Any) -> None:
         """Scenario: 讀取存在的文字檔案。
 
@@ -98,6 +102,7 @@ class TestReadFile:
         assert result['path'] == 'src/main.py'
         assert result['language'] == 'python'
 
+    @allure.title('讀取不存在的檔案')
     def test_read_nonexistent_file(self, read_file: Any) -> None:
         """Scenario: 讀取不存在的檔案。
 
@@ -108,6 +113,7 @@ class TestReadFile:
         with pytest.raises(FileNotFoundError):
             read_file('nonexistent.py')
 
+    @allure.title('讀取空檔案')
     def test_read_empty_file(self, read_file: Any) -> None:
         """Scenario: 讀取空檔案。
 
@@ -120,6 +126,7 @@ class TestReadFile:
         assert result['content'] == ''
         assert result['path'] == 'empty.txt'
 
+    @allure.title('讀取檔案時回傳 SSE 事件資料')
     def test_read_file_returns_sse_events(self, read_file: Any) -> None:
         """Scenario: 讀取檔案時回傳 SSE 事件資料。
 
@@ -152,9 +159,12 @@ class TestReadFile:
 # =============================================================================
 
 
+@allure.feature('讀取檔案功能')
+@allure.story('Agent 應正確處理各種檔案類型')
 class TestFileTypeDetection:
     """測試檔案類型識別功能。"""
 
+    @allure.title('讀取 Python 檔案')
     def test_detect_python_file(self, read_file: Any) -> None:
         """Scenario: 讀取 Python 檔案。
 
@@ -165,6 +175,7 @@ class TestFileTypeDetection:
         result = read_file('src/main.py')
         assert result['language'] == 'python'
 
+    @allure.title('讀取 JSON 檔案')
     def test_detect_json_file(self, read_file: Any) -> None:
         """Scenario: 讀取 JSON 檔案。
 
@@ -175,6 +186,7 @@ class TestFileTypeDetection:
         result = read_file('config.json')
         assert result['language'] == 'json'
 
+    @allure.title('讀取 Markdown 檔案')
     def test_detect_markdown_file(self, read_file: Any) -> None:
         """Scenario: 讀取 Markdown 檔案。
 
@@ -185,6 +197,7 @@ class TestFileTypeDetection:
         result = read_file('README.md')
         assert result['language'] == 'markdown'
 
+    @allure.title('嘗試讀取二進位檔案')
     def test_reject_binary_file(self, read_file: Any) -> None:
         """Scenario: 嘗試讀取二進位檔案。
 
@@ -201,9 +214,12 @@ class TestFileTypeDetection:
 # =============================================================================
 
 
+@allure.feature('讀取檔案功能')
+@allure.story('Agent 應處理檔案路徑安全性')
 class TestPathSecurity:
     """測試路徑安全性。"""
 
+    @allure.title('使用相對路徑讀取檔案')
     def test_resolve_relative_path(self, read_file: Any) -> None:
         """Scenario: 使用相對路徑讀取檔案。
 
@@ -214,6 +230,7 @@ class TestPathSecurity:
         result = read_file('src/main.py')
         assert result['content'] == "def hello():\n    print('world')\n"
 
+    @allure.title('阻擋路徑穿越攻擊')
     def test_block_path_traversal(self, read_file: Any) -> None:
         """Scenario: 阻擋路徑穿越攻擊。
 
@@ -223,11 +240,13 @@ class TestPathSecurity:
         with pytest.raises(PermissionError):
             read_file('../../../etc/passwd')
 
+    @allure.title('阻擋隱藏的路徑穿越攻擊')
     def test_block_path_traversal_with_nested_path(self, read_file: Any) -> None:
         """阻擋隱藏的路徑穿越攻擊。"""
         with pytest.raises(PermissionError):
             read_file('src/../../outside.txt')
 
+    @allure.title('阻擋讀取敏感檔案')
     def test_warn_sensitive_file(self, read_file: Any) -> None:
         """Scenario: 阻擋讀取敏感檔案。
 
@@ -243,9 +262,12 @@ class TestPathSecurity:
 # =============================================================================
 
 
+@allure.feature('讀取檔案功能')
+@allure.story('Agent 應處理大型檔案')
 class TestLargeFileHandling:
     """測試大型檔案處理功能。"""
 
+    @allure.title('讀取超過大小限制的檔案')
     def test_reject_large_file(self, read_file: Any) -> None:
         """Scenario: 讀取超過大小限制的檔案。
 
@@ -256,6 +278,7 @@ class TestLargeFileHandling:
         with pytest.raises(ValueError, match='過大'):
             read_file('large_file.log')
 
+    @allure.title('讀取檔案的指定行數範圍')
     def test_read_file_range(self, read_file: Any) -> None:
         """Scenario: 讀取檔案的指定行數範圍。
 

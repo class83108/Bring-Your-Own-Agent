@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -52,9 +53,12 @@ def sandbox_dir(tmp_path: Path) -> Path:
     return sandbox
 
 
+@allure.feature('檔案列表工具')
+@allure.story('驗證 Agent 能透過工具列出檔案 (Smoke)')
 class TestSmokeFileList:
     """Smoke test - 驗證 Agent 能透過工具列出檔案。"""
 
+    @allure.title('驗證 Agent 能調用 list_files 工具並列出目錄內容')
     async def test_agent_lists_directory(self, sandbox_dir: Path) -> None:
         """驗證 Agent 能調用 list_files 工具並列出目錄內容。"""
         registry = create_default_registry(sandbox_dir)
@@ -81,6 +85,7 @@ class TestSmokeFileList:
         # 對話歷史應包含工具調用記錄
         assert len(agent.conversation) >= 4
 
+    @allure.title('驗證 Agent 能遞迴列出所有 Python 檔案')
     async def test_agent_lists_recursively(self, sandbox_dir: Path) -> None:
         """驗證 Agent 能遞迴列出所有 Python 檔案。"""
         registry = create_default_registry(sandbox_dir)

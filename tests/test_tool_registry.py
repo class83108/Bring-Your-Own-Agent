@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+import allure
 import pytest
 
 # =============================================================================
@@ -57,9 +58,12 @@ def sample_search_tool(query: str) -> str:
 # =============================================================================
 
 
+@allure.feature('Agent 核心架構')
+@allure.story('Tool Registry 應能動態管理工具')
 class TestToolRegistryManagement:
     """測試 Tool Registry 動態管理工具功能。"""
 
+    @allure.title('註冊新工具。')
     def test_register_new_tool(self, registry: Any) -> None:
         """Scenario: 註冊新工具。
 
@@ -165,13 +169,17 @@ async def sample_file_tool(path: str) -> str:
     return f'操作完成: {path}'
 
 
+@allure.feature('Agent 核心架構')
+@allure.story('Tool Registry 應能動態管理工具')
 class TestToolSummaries:
     """測試工具摘要查詢功能。"""
 
+    @allure.title('空的 registry 應回傳空列表')
     def test_get_tool_summaries_empty(self, registry: Any) -> None:
         """空的 registry 應回傳空列表。"""
         assert registry.get_tool_summaries() == []
 
+    @allure.title('摘要應包含 name、description、source')
     def test_get_tool_summaries_returns_name_description_source(self, registry: Any) -> None:
         """摘要應包含 name、description、source。"""
         registry.register(
@@ -190,6 +198,7 @@ class TestToolSummaries:
             'source': 'native',
         }
 
+    @allure.title('修改 source 後摘要應反映變更')
     def test_get_tool_summaries_reflects_source_change(self, registry: Any) -> None:
         """修改 source 後摘要應反映變更。"""
         registry.register(
@@ -205,9 +214,12 @@ class TestToolSummaries:
         assert summaries[0]['source'] == 'mcp'
 
 
+@allure.feature('Agent 核心架構')
+@allure.story('並行執行應避免檔案競爭')
 class TestFileLocking:
     """測試檔案鎖定機制，避免競爭條件。"""
 
+    @allure.title('測試檔案工具執行時應正確取得並釋放鎖。')
     async def test_file_tool_acquires_and_releases_lock(self) -> None:
         """測試檔案工具執行時應正確取得並釋放鎖。
 
@@ -239,6 +251,7 @@ class TestFileLocking:
         release_idx = mock_lock.events.index(('release', 'src/main.py'))
         assert acquire_idx < release_idx
 
+    @allure.title('測試沒有 file_param 的工具不應取得鎖。')
     async def test_tool_without_file_param_does_not_acquire_lock(self) -> None:
         """測試沒有 file_param 的工具不應取得鎖。
 
@@ -264,6 +277,7 @@ class TestFileLocking:
         # Assert - 不應有任何鎖事件
         assert len(mock_lock.events) == 0
 
+    @allure.title('測試操作同一檔案的工具應串行執行。')
     async def test_same_file_operations_are_serialized(self) -> None:
         """測試操作同一檔案的工具應串行執行。
 
@@ -305,6 +319,7 @@ class TestFileLocking:
         assert file_events[2] == ('acquire', 'same_file.py')
         assert file_events[3] == ('release', 'same_file.py')
 
+    @allure.title('測試操作不同檔案的工具可以交錯執行（並行）。')
     async def test_different_file_operations_can_interleave(self) -> None:
         """測試操作不同檔案的工具可以交錯執行（並行）。
 

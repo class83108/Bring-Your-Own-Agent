@@ -17,6 +17,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -125,9 +126,12 @@ def _make_agent(provider: Any) -> Agent:
 # =============================================================================
 
 
+@allure.feature('多模態輸入（圖片與 PDF）')
+@allure.story('Agent 應支援接收圖片訊息')
 class TestMultimodalImageInput:
     """Rule: Agent 應支援接收圖片訊息。"""
 
+    @allure.title('使用者傳送 base64 圖片與文字')
     async def test_base64_image_with_text(self) -> None:
         """Scenario: 使用者傳送 base64 圖片與文字。"""
         provider = MockProvider([(['這是一張圖片'], _make_final_message('這是一張圖片'))])
@@ -147,6 +151,7 @@ class TestMultimodalImageInput:
         assert 'image' in content_types
         assert 'text' in content_types
 
+    @allure.title('使用者傳送 URL 圖片與文字')
     async def test_url_image_with_text(self) -> None:
         """Scenario: 使用者傳送 URL 圖片與文字。"""
         provider = MockProvider([(['看到了'], _make_final_message('看到了'))])
@@ -164,6 +169,7 @@ class TestMultimodalImageInput:
         assert image_block['source']['type'] == 'url'
         assert image_block['source']['url'] == 'https://example.com/img.png'
 
+    @allure.title('使用者傳送多張圖片')
     async def test_multiple_images(self) -> None:
         """Scenario: 使用者傳送多張圖片。"""
         provider = MockProvider([(['比較結果'], _make_final_message('比較結果'))])
@@ -190,9 +196,12 @@ class TestMultimodalImageInput:
 # =============================================================================
 
 
+@allure.feature('多模態輸入（圖片與 PDF）')
+@allure.story('Agent 應支援接收 PDF 文件')
 class TestMultimodalPDFInput:
     """Rule: Agent 應支援接收 PDF 文件。"""
 
+    @allure.title('使用者傳送 base64 PDF 與文字')
     async def test_base64_pdf_with_text(self) -> None:
         """Scenario: 使用者傳送 base64 PDF 與文字。"""
         provider = MockProvider([(['PDF 內容'], _make_final_message('PDF 內容'))])
@@ -216,9 +225,12 @@ class TestMultimodalPDFInput:
 # =============================================================================
 
 
+@allure.feature('多模態輸入（圖片與 PDF）')
+@allure.story('純文字訊息應向後相容')
 class TestMultimodalBackwardCompatibility:
     """Rule: 純文字訊息應向後相容。"""
 
+    @allure.title('使用者僅傳送文字')
     async def test_text_only_message(self) -> None:
         """Scenario: 使用者僅傳送文字。"""
         provider = MockProvider([(['Hello'], _make_final_message('Hello'))])
@@ -231,6 +243,7 @@ class TestMultimodalBackwardCompatibility:
         user_msg = agent.conversation[0]
         assert user_msg['content'] == 'Hello'
 
+    @allure.title('空附件列表應視為純文字')
     async def test_empty_attachments_treated_as_text(self) -> None:
         """空附件列表應視為純文字。"""
         provider = MockProvider([(['OK'], _make_final_message('OK'))])
@@ -248,9 +261,12 @@ class TestMultimodalBackwardCompatibility:
 # =============================================================================
 
 
+@allure.feature('多模態輸入（圖片與 PDF）')
+@allure.story('應驗證附件大小與格式')
 class TestMultimodalValidation:
     """Rule: 應驗證附件大小與格式。"""
 
+    @allure.title('圖片超過大小限制')
     def test_image_size_limit(self) -> None:
         """Scenario: 圖片超過大小限制。"""
         # 20MB = 20 * 1024 * 1024 bytes → base64 約 26.67MB 字元
@@ -260,6 +276,7 @@ class TestMultimodalValidation:
         with pytest.raises(ValueError, match='過大'):
             validate_attachment(attachment)
 
+    @allure.title('PDF 超過大小限制')
     def test_pdf_size_limit(self) -> None:
         """Scenario: PDF 超過大小限制。"""
         huge_data = base64.b64encode(b'\x00' * (32 * 1024 * 1024 + 1)).decode()
@@ -268,6 +285,7 @@ class TestMultimodalValidation:
         with pytest.raises(ValueError, match='過大'):
             validate_attachment(attachment)
 
+    @allure.title('不支援的 media_type')
     def test_unsupported_media_type(self) -> None:
         """Scenario: 不支援的 media_type。"""
         attachment = Attachment(media_type='video/mp4', data='abc')
@@ -275,12 +293,14 @@ class TestMultimodalValidation:
         with pytest.raises(ValueError, match='不支援'):
             validate_attachment(attachment)
 
+    @allure.title('所有支援的 media_type 都應通過驗證')
     def test_supported_media_types(self) -> None:
         """所有支援的 media_type 都應通過驗證。"""
         for mt in SUPPORTED_MEDIA_TYPES:
             attachment = Attachment(media_type=mt, data=TINY_PNG_B64)
             validate_attachment(attachment)  # 不應拋出例外
 
+    @allure.title('附件必須提供 data 或 url 其中之一')
     def test_attachment_must_have_data_or_url(self) -> None:
         """附件必須提供 data 或 url 其中之一。"""
         attachment = Attachment(media_type='image/png')
@@ -294,9 +314,12 @@ class TestMultimodalValidation:
 # =============================================================================
 
 
+@allure.feature('多模態輸入（圖片與 PDF）')
+@allure.story('API 層應支援附件欄位')
 class TestBuildContentBlocks:
     """驗證 content blocks 組合邏輯。"""
 
+    @allure.title('base64 圖片應產生正確的 content block')
     def test_image_base64_block(self) -> None:
         """base64 圖片應產生正確的 content block。"""
         attachments = [Attachment(media_type='image/png', data=TINY_PNG_B64)]
@@ -312,6 +335,7 @@ class TestBuildContentBlocks:
         }
         assert blocks[1] == {'type': 'text', 'text': '描述圖片'}
 
+    @allure.title('URL 圖片應產生正確的 content block')
     def test_image_url_block(self) -> None:
         """URL 圖片應產生正確的 content block。"""
         attachments = [Attachment(media_type='image/jpeg', url='https://example.com/a.jpg')]
@@ -324,6 +348,7 @@ class TestBuildContentBlocks:
             'url': 'https://example.com/a.jpg',
         }
 
+    @allure.title('base64 PDF 應產生 document 類型的 content block')
     def test_pdf_base64_block(self) -> None:
         """base64 PDF 應產生 document 類型的 content block。"""
         attachments = [Attachment(media_type='application/pdf', data=TINY_PDF_B64)]
@@ -337,6 +362,7 @@ class TestBuildContentBlocks:
             'data': TINY_PDF_B64,
         }
 
+    @allure.title('混合圖片與 PDF 應正確產生各自的 block')
     def test_mixed_attachments(self) -> None:
         """混合圖片與 PDF 應正確產生各自的 block。"""
         attachments = [
@@ -351,11 +377,13 @@ class TestBuildContentBlocks:
         assert blocks[1]['type'] == 'document'
         assert blocks[2]['type'] == 'text'
 
+    @allure.title('無附件時應回傳原始文字字串')
     def test_text_only_returns_string(self) -> None:
         """無附件時應回傳原始文字字串。"""
         result = build_content_blocks('Hello', None)
         assert result == 'Hello'
 
+    @allure.title('空附件列表應回傳原始文字字串')
     def test_empty_attachments_returns_string(self) -> None:
         """空附件列表應回傳原始文字字串。"""
         result = build_content_blocks('Hello', [])
@@ -367,9 +395,12 @@ class TestBuildContentBlocks:
 # =============================================================================
 
 
+@allure.feature('多模態輸入（圖片與 PDF）')
+@allure.story('對話歷史應正確保存多模態訊息')
 class TestMultimodalConversationHistory:
     """Rule: 對話歷史應正確保存多模態訊息。"""
 
+    @allure.title('多模態訊息持久化後可恢復')
     async def test_multimodal_message_persisted_in_conversation(self) -> None:
         """Scenario: 多模態訊息持久化後可恢復。"""
         provider = MockProvider([(['分析完成'], _make_final_message('分析完成'))])
@@ -391,6 +422,7 @@ class TestMultimodalConversationHistory:
         assistant_msg = agent.conversation[1]
         assert assistant_msg['role'] == 'assistant'
 
+    @allure.title('Provider 應收到完整的多模態 content blocks')
     async def test_provider_receives_multimodal_messages(self) -> None:
         """Provider 應收到完整的多模態 content blocks。"""
         provider = MockProvider([(['OK'], _make_final_message('OK'))])

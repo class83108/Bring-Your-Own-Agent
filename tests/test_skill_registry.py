@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import allure
 import pytest
 
 from agent_core.skills import Skill, SkillRegistry
@@ -19,9 +20,12 @@ from agent_core.skills import Skill, SkillRegistry
 # =============================================================================
 
 
+@allure.feature('Skill 技能系統')
+@allure.story('Skill 應支援註冊與管理')
 class TestSkillRegistration:
     """Skill 註冊功能測試。"""
 
+    @allure.title('註冊一個 Skill')
     def test_register_skill(self) -> None:
         """Scenario: 註冊一個 Skill。"""
         registry = SkillRegistry()
@@ -35,6 +39,7 @@ class TestSkillRegistration:
 
         assert 'fitness' in registry.list_skills()
 
+    @allure.title('註冊多個 Skill')
     def test_register_multiple_skills(self) -> None:
         """Scenario: 註冊多個 Skill。"""
         registry = SkillRegistry()
@@ -55,6 +60,7 @@ class TestSkillRegistration:
 
         assert len(registry.list_skills()) == 2
 
+    @allure.title('不允許重複註冊同名 Skill')
     def test_duplicate_skill_name_raises_error(self) -> None:
         """Scenario: 不允許重複註冊同名 Skill。"""
         registry = SkillRegistry()
@@ -81,9 +87,12 @@ class TestSkillRegistration:
 # =============================================================================
 
 
+@allure.feature('Skill 技能系統')
+@allure.story('Skill 應支援兩階段載入')
 class TestSkillTwoPhaseLoading:
     """Skill 兩階段載入測試。"""
 
+    @allure.title('Phase 1 — 只載入 Skill 描述清單')
     def test_get_skill_descriptions(self) -> None:
         """Scenario: Phase 1 — 只載入 Skill 描述清單。"""
         registry = SkillRegistry()
@@ -112,6 +121,7 @@ class TestSkillTwoPhaseLoading:
         assert '完整健身指令' not in descriptions
         assert '完整營養指令' not in descriptions
 
+    @allure.title('Phase 1 — 隱藏 disable_model_invocation 的 Skill')
     def test_disable_model_invocation_hides_description(self) -> None:
         """Scenario: Phase 1 — 隱藏 disable_model_invocation 的 Skill。"""
         registry = SkillRegistry()
@@ -138,6 +148,7 @@ class TestSkillTwoPhaseLoading:
         assert 'hidden' not in descriptions
         assert '隱藏的 Skill' not in descriptions
 
+    @allure.title('Phase 2 — 啟用 Skill 載入完整指令')
     def test_activate_skill(self) -> None:
         """Scenario: Phase 2 — 啟用 Skill 載入完整指令。"""
         registry = SkillRegistry()
@@ -153,6 +164,7 @@ class TestSkillTwoPhaseLoading:
 
         assert 'fitness' in registry.list_active_skills()
 
+    @allure.title('停用已啟用的 Skill')
     def test_deactivate_skill(self) -> None:
         """Scenario: 停用已啟用的 Skill。"""
         registry = SkillRegistry()
@@ -169,6 +181,7 @@ class TestSkillTwoPhaseLoading:
 
         assert 'fitness' not in registry.list_active_skills()
 
+    @allure.title('啟用不存在的 Skill 應拋出 KeyError')
     def test_activate_nonexistent_skill_raises_error(self) -> None:
         """啟用不存在的 Skill 應拋出 KeyError。"""
         registry = SkillRegistry()
@@ -176,6 +189,7 @@ class TestSkillTwoPhaseLoading:
         with pytest.raises(KeyError, match='unknown'):
             registry.activate('unknown')
 
+    @allure.title('重複啟用同一個 Skill 不應報錯')
     def test_activate_already_active_is_idempotent(self) -> None:
         """重複啟用同一個 Skill 不應報錯。"""
         registry = SkillRegistry()
@@ -198,9 +212,12 @@ class TestSkillTwoPhaseLoading:
 # =============================================================================
 
 
+@allure.feature('Skill 技能系統')
+@allure.story('Skill 應能擴充 System Prompt')
 class TestSkillSystemPrompt:
     """Skill 擴充 System Prompt 測試。"""
 
+    @allure.title('合併基礎提示、描述清單與已啟用 Skill 指令')
     def test_combined_prompt_with_active_skill(self) -> None:
         """Scenario: 合併基礎提示、描述清單與已啟用 Skill 指令。"""
         registry = SkillRegistry()
@@ -234,6 +251,7 @@ class TestSkillSystemPrompt:
         # 不應包含未啟用 Skill 的完整 instructions
         assert '你擅長營養建議' not in result
 
+    @allure.title('無 Skill 時只回傳基礎提示')
     def test_no_skills_returns_base_prompt(self) -> None:
         """Scenario: 無 Skill 時只回傳基礎提示。"""
         registry = SkillRegistry()
@@ -242,6 +260,7 @@ class TestSkillSystemPrompt:
 
         assert result == '你是一位助手'
 
+    @allure.title('有 Skill 但都未啟用時，只帶描述清單')
     def test_skills_registered_but_none_active(self) -> None:
         """有 Skill 但都未啟用時，只帶描述清單。"""
         registry = SkillRegistry()
@@ -267,9 +286,12 @@ class TestSkillSystemPrompt:
 # =============================================================================
 
 
+@allure.feature('Skill 技能系統')
+@allure.story('Skill 應能列出與查詢')
 class TestSkillQuery:
     """Skill 列出與查詢測試。"""
 
+    @allure.title('列出所有已註冊的 Skill')
     def test_list_skills(self) -> None:
         """Scenario: 列出所有已註冊的 Skill。"""
         registry = SkillRegistry()
@@ -293,6 +315,7 @@ class TestSkillQuery:
         assert 'fitness' in names
         assert 'nutrition' in names
 
+    @allure.title('依名稱取得 Skill')
     def test_get_skill_by_name(self) -> None:
         """Scenario: 依名稱取得 Skill。"""
         registry = SkillRegistry()
@@ -310,6 +333,7 @@ class TestSkillQuery:
         assert found.description == '健身助手'
         assert found.instructions == '你擅長健身建議'
 
+    @allure.title('查詢不存在的 Skill')
     def test_get_nonexistent_skill_returns_none(self) -> None:
         """Scenario: 查詢不存在的 Skill。"""
         registry = SkillRegistry()

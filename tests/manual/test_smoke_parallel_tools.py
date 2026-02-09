@@ -11,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -39,9 +40,12 @@ def sandbox_with_files(tmp_path: Path) -> Path:
     return sandbox
 
 
+@allure.feature('Agent 核心架構')
+@allure.story('Agent 應支援並行工具執行 (Smoke)')
 class TestSmokeParallelTools:
     """Smoke test - 驗證多工具並行執行。"""
 
+    @allure.title('驗證 Agent 能處理多個工具調用並回傳所有結果')
     async def test_agent_handles_multiple_tool_calls(self, sandbox_with_files: Path) -> None:
         """驗證 Agent 能處理多個工具調用並回傳所有結果。"""
         registry = create_default_registry(sandbox_with_files)

@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import allure
 import pytest
 
 from agent_core.config import ProviderConfig
@@ -120,10 +121,13 @@ def _make_connection_error() -> Any:
     return APIConnectionError(request=MagicMock())
 
 
+@allure.feature('API 錯誤自動重試')
+@allure.story('可重試錯誤應自動重試並使用指數退避')
 class TestRetryableErrors:
     """Rule: 可重試錯誤應自動重試並使用指數退避。"""
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('429 Rate Limit 錯誤觸發重試')
     async def test_429_rate_limit_triggers_retry(self, mock_sleep: AsyncMock) -> None:
         """Scenario: 429 Rate Limit 錯誤觸發重試。"""
         rate_limit_error = _make_api_status_error(429, 'Rate limit exceeded')
@@ -158,6 +162,7 @@ class TestRetryableErrors:
         mock_sleep.assert_any_call(2.0)
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('5xx 伺服器錯誤觸發重試')
     async def test_5xx_server_error_triggers_retry(self, mock_sleep: AsyncMock) -> None:
         """Scenario: 5xx 伺服器錯誤觸發重試。"""
         server_error = _make_api_status_error(500, 'Internal Server Error')
@@ -184,6 +189,7 @@ class TestRetryableErrors:
         assert mock_client.messages.stream.call_count == 2
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('網路超時觸發重試')
     async def test_timeout_triggers_retry(self, mock_sleep: AsyncMock) -> None:
         """Scenario: 網路超時觸發重試。"""
         timeout_error = _make_timeout_error()
@@ -210,6 +216,7 @@ class TestRetryableErrors:
         assert mock_client.messages.stream.call_count == 2
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('連線失敗觸發重試')
     async def test_connection_error_triggers_retry(self, mock_sleep: AsyncMock) -> None:
         """Scenario: 連線失敗觸發重試。"""
         conn_error = _make_connection_error()
@@ -236,9 +243,12 @@ class TestRetryableErrors:
         assert mock_client.messages.stream.call_count == 2
 
 
+@allure.feature('API 錯誤自動重試')
+@allure.story('不可重試錯誤應立即拋出')
 class TestNonRetryableErrors:
     """Rule: 不可重試錯誤應立即拋出。"""
 
+    @allure.title('401 認證錯誤不重試')
     async def test_401_auth_error_no_retry(self) -> None:
         """Scenario: 401 認證錯誤不重試。"""
         auth_error = _make_auth_error()
@@ -262,6 +272,7 @@ class TestNonRetryableErrors:
         # 應只呼叫 1 次，不重試
         assert mock_client.messages.stream.call_count == 1
 
+    @allure.title('400 Bad Request 不重試')
     async def test_400_bad_request_no_retry(self) -> None:
         """Scenario: 400 Bad Request 不重試。"""
         bad_request_error = _make_api_status_error(400, 'Bad Request')
@@ -286,10 +297,13 @@ class TestNonRetryableErrors:
         assert mock_client.messages.stream.call_count == 1
 
 
+@allure.feature('API 錯誤自動重試')
+@allure.story('超過最大重試次數應拋出最後的錯誤')
 class TestRetryExhaustion:
     """Rule: 超過最大重試次數應拋出最後的錯誤。"""
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('重試耗盡後拋出 ProviderRateLimitError')
     async def test_exhausted_retries_raises_last_error(self, mock_sleep: AsyncMock) -> None:
         """Scenario: 重試耗盡後拋出 ProviderRateLimitError。"""
         rate_limit_error = _make_api_status_error(429, 'Rate limit exceeded')
@@ -317,10 +331,13 @@ class TestRetryExhaustion:
         assert mock_client.messages.stream.call_count == 4
 
 
+@allure.feature('API 錯誤自動重試')
+@allure.story('重試應適用於所有 Provider 方法')
 class TestRetryAllMethods:
     """Rule: 重試應適用於所有 Provider 方法。"""
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('stream() 方法支援重試')
     async def test_stream_retry(self, mock_sleep: AsyncMock) -> None:
         """Scenario: stream() 方法支援重試。"""
         timeout_error = _make_timeout_error()
@@ -348,6 +365,7 @@ class TestRetryAllMethods:
         assert final.stop_reason == 'end_turn'
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('create() 方法支援重試')
     async def test_create_retry(self, mock_sleep: AsyncMock) -> None:
         """Scenario: create() 方法支援重試。"""
         timeout_error = _make_timeout_error()
@@ -365,6 +383,7 @@ class TestRetryAllMethods:
         assert mock_client.messages.create.call_count == 2
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('count_tokens() 方法支援重試')
     async def test_count_tokens_retry(self, mock_sleep: AsyncMock) -> None:
         """Scenario: count_tokens() 方法支援重試。"""
         timeout_error = _make_timeout_error()
@@ -386,10 +405,13 @@ class TestRetryAllMethods:
         assert mock_client.messages.count_tokens.call_count == 2
 
 
+@allure.feature('API 錯誤自動重試')
+@allure.story('可重試錯誤應自動重試並使用指數退避')
 class TestRetryBackoffTiming:
     """驗證指數退避的時間間隔。"""
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('退避間隔應為 initial_delay * 2^attempt')
     async def test_exponential_backoff_delays(self, mock_sleep: AsyncMock) -> None:
         """退避間隔應為 initial_delay * 2^attempt。"""
         rate_limit_error = _make_api_status_error(429, 'Rate limit')
@@ -421,10 +443,13 @@ class TestRetryBackoffTiming:
         mock_sleep.assert_any_call(2.0)
 
 
+@allure.feature('API 錯誤自動重試')
+@allure.story('重試過程可透過 SSE 通知前端')
 class TestRetrySSENotification:
     """Rule: 重試過程可透過 SSE 通知前端。"""
 
     @patch('asyncio.sleep', new_callable=AsyncMock)
+    @allure.title('重試時觸發回調通知')
     async def test_retry_callback_invoked(self, mock_sleep: AsyncMock) -> None:
         """Scenario: 重試時觸發回調通知。"""
         rate_limit_error = _make_api_status_error(429, 'Rate limit')

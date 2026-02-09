@@ -25,3 +25,7 @@ workspace/sandbox/
 
 # SQLite 資料庫
 *.db
+
+# Allure 測試報告
+allure-results/
+allure-report/

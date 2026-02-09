@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -38,9 +39,12 @@ def sandbox_dir(tmp_path: Path) -> Path:
     return sandbox
 
 
+@allure.feature('檔案讀取工具')
+@allure.story('驗證 Agent 能透過工具讀取檔案 (Smoke)')
 class TestSmokeFileRead:
     """Smoke test - 驗證 Agent 能透過工具讀取檔案。"""
 
+    @allure.title('驗證 Agent 能調用 read_file 工具並回傳檔案內容')
     async def test_agent_reads_file_with_tool(self, sandbox_dir: Path) -> None:
         """驗證 Agent 能調用 read_file 工具並回傳檔案內容。"""
         registry = create_default_registry(sandbox_dir)

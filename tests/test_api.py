@@ -11,6 +11,7 @@ from collections.abc import AsyncIterator
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import allure
 import pytest
 from httpx import ASGITransport, AsyncClient
 
@@ -81,10 +82,13 @@ def _make_mock_session_manager() -> MagicMock:
 
 
 # --- 測試類別 ---
+@allure.feature('聊天 API 端點')
+@allure.story('SSE 端點應正確串流回傳 Agent 回應')
 class TestSSEStreaming:
     """測試 SSE 串流回應 — 對應 Rule: SSE 端點應正確串流回傳 Agent 回應"""
 
     @pytest.mark.asyncio
+    @allure.title('正常訊息透過 SSE 逐步傳回')
     async def test_normal_stream_returns_token_and_done_events(self) -> None:
         """正常訊息透過 SSE 逐步傳回。"""
         mock_session = _make_mock_session_manager()
@@ -127,6 +131,7 @@ class TestSSEStreaming:
         mock_session.save.assert_called_once()
 
     @pytest.mark.asyncio
+    @allure.title('空白訊息傳回 SSE error 事件')
     async def test_empty_message_returns_error_event(self) -> None:
         """空白訊息傳回 SSE error 事件。"""
         mock_session = _make_mock_session_manager()
@@ -149,6 +154,7 @@ class TestSSEStreaming:
         assert error['type'] == 'ValueError'
 
     @pytest.mark.asyncio
+    @allure.title('Agent 拋出 ConnectionError 時傳回 SSE error 事件')
     async def test_connection_error_returns_error_event(self) -> None:
         """Agent 拋出 ConnectionError 時傳回 SSE error 事件。"""
         mock_session = _make_mock_session_manager()
@@ -184,10 +190,13 @@ class TestSSEStreaming:
         assert '連線' in error['message']
 
 
+@allure.feature('聊天 API 端點')
+@allure.story('會話 Cookie 應自動管理')
 class TestSessionCookie:
     """測試會話 Cookie 管理 — 對應 Rule: 會話 Cookie 應自動管理"""
 
     @pytest.mark.asyncio
+    @allure.title('首次請求生成新會話 Cookie')
     async def test_new_session_sets_cookie(self) -> None:
         """首次請求生成新會話 Cookie。"""
         mock_session = _make_mock_session_manager()
@@ -217,6 +226,7 @@ class TestSessionCookie:
         assert 'session_id' in response.cookies
 
     @pytest.mark.asyncio
+    @allure.title('既有會話應更新 Cookie 過期時間')
     async def test_existing_session_updates_cookie_expiry(self) -> None:
         """既有會話應更新 Cookie 過期時間。"""
         mock_session = _make_mock_session_manager()
@@ -248,10 +258,13 @@ class TestSessionCookie:
         assert response.cookies['session_id'] == 'test-session-abc'
 
 
+@allure.feature('聊天 API 端點')
+@allure.story('會話歷史應透過 Redis 持久化')
 class TestSessionHistory:
     """測試會話歷史持久化 — 對應 Rule: 會話歷史應透過 Redis 持久化"""
 
     @pytest.mark.asyncio
+    @allure.title('連續對話歷史累積正確')
     async def test_conversation_history_accumulates(self) -> None:
         """連續對話歷史累積正確。"""
         # 模擬 Redis 已有一組歷史
@@ -295,6 +308,7 @@ class TestSessionHistory:
         assert saved_conversation[3]['role'] == 'assistant'
 
     @pytest.mark.asyncio
+    @allure.title('透過 DELETE /api/sessions/{id} 清除會話歷史')
     async def test_delete_session_clears_history(self) -> None:
         """透過 DELETE /api/sessions/{id} 清除會話歷史。"""
         mock_session = _make_mock_session_manager()
@@ -310,10 +324,13 @@ class TestSessionHistory:
         mock_session.delete_session.assert_called_once_with('test-session-abc')
 
 
+@allure.feature('聊天 API 端點')
+@allure.story('會話歷史應可透過 API 讀取')
 class TestChatHistory:
     """測試會話歷史讀取 — 對應 Rule: 會話歷史應可透過 API 讀取"""
 
     @pytest.mark.asyncio
+    @allure.title('取得現有會話的歷史記錄')
     async def test_get_existing_session_history(self) -> None:
         """取得現有會話的歷史記錄。"""
         # 模擬 Redis 已有兩組對話
@@ -346,6 +363,7 @@ class TestChatHistory:
         assert messages[1]['content'] == '第一答'
 
     @pytest.mark.asyncio
+    @allure.title('取得空會話的歷史記錄')
     async def test_get_empty_session_history(self) -> None:
         """取得空會話的歷史記錄。"""
         mock_session = _make_mock_session_manager()
@@ -366,6 +384,7 @@ class TestChatHistory:
         assert data['messages'] == []
 
     @pytest.mark.asyncio
+    @allure.title('無會話時取得歷史記錄')
     async def test_get_history_without_session(self) -> None:
         """無會話時取得歷史記錄。"""
         mock_session = _make_mock_session_manager()
@@ -385,6 +404,7 @@ class TestChatHistory:
         mock_session.load.assert_not_called()
 
     @pytest.mark.asyncio
+    @allure.title('取得包含 text blocks 的歷史記錄')
     async def test_get_history_with_text_blocks(self) -> None:
         """取得包含 text blocks 的歷史記錄。"""
         # 模擬 content 是 list，包含 text blocks（來自 tool_use 迴圈）
@@ -427,6 +447,7 @@ class TestChatHistory:
         assert messages[1]['content'] == '好的，讓我讀取檔案內容'
 
     @pytest.mark.asyncio
+    @allure.title('取得包含多個 text blocks 的歷史記錄（應合併）')
     async def test_get_history_with_multiple_text_blocks(self) -> None:
         """取得包含多個 text blocks 的歷史記錄（應合併）。"""
         existing_history = [
@@ -460,6 +481,7 @@ class TestChatHistory:
         assert messages[0]['content'] == '第一段文字第二段文字第三段文字'
 
     @pytest.mark.asyncio
+    @allure.title('取得只包含 tool_use blocks 的歷史記錄（應被過濾）')
     async def test_get_history_with_only_tool_use_blocks(self) -> None:
         """取得只包含 tool_use blocks 的歷史記錄（應被過濾）。"""
         existing_history = [
@@ -505,6 +527,7 @@ class TestChatHistory:
         assert messages[0]['content'] == '請執行工具'
 
     @pytest.mark.asyncio
+    @allure.title('取得包含混合 text 和 tool_use blocks 的歷史記錄')
     async def test_get_history_with_mixed_blocks(self) -> None:
         """取得包含混合 text 和 tool_use blocks 的歷史記錄。"""
         existing_history = [
@@ -564,10 +587,13 @@ class TestChatHistory:
 STATUS_URL = '/api/agent/status'
 
 
+@allure.feature('聊天 API 端點')
+@allure.story('Agent 配置狀態端點')
 class TestAgentStatus:
     """測試 Agent 配置狀態端點 — GET /api/agent/status"""
 
     @pytest.mark.asyncio
+    @allure.title('應回傳目前的 model 名稱與 max_tokens')
     async def test_status_returns_model_and_max_tokens(self) -> None:
         """應回傳目前的 model 名稱與 max_tokens。"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
@@ -581,6 +607,7 @@ class TestAgentStatus:
         assert isinstance(data['max_tokens'], int)
 
     @pytest.mark.asyncio
+    @allure.title('應回傳 context_window 欄位')
     async def test_status_returns_context_window(self) -> None:
         """應回傳 context_window 欄位。"""
         async with AsyncClient(transport=ASGITransport(app=app), base_url='http://test') as client:
@@ -593,6 +620,7 @@ class TestAgentStatus:
         assert data['context_window'] > 0
 
     @pytest.mark.asyncio
+    @allure.title('應回傳工具清單（含 source）')
     async def test_status_returns_tools_list(self) -> None:
         """應回傳工具清單（含 source）。"""
         from agent_core.tools.registry import ToolRegistry
@@ -618,6 +646,7 @@ class TestAgentStatus:
         assert data['tools'][0]['source'] == 'native'
 
     @pytest.mark.asyncio
+    @allure.title('應回傳技能註冊與啟用狀態')
     async def test_status_returns_skills_info(self) -> None:
         """應回傳技能註冊與啟用狀態。"""
         from agent_core.skills.base import Skill
@@ -652,6 +681,7 @@ class TestAgentStatus:
         assert data['skills']['active'] == ['code_review']
 
     @pytest.mark.asyncio
+    @allure.title('registry 為 None 時應回傳空列表')
     async def test_status_with_no_registries(self) -> None:
         """registry 為 None 時應回傳空列表。"""
         with (
@@ -668,10 +698,13 @@ class TestAgentStatus:
         assert data['skills'] == {'registered': [], 'active': []}
 
 
+@allure.feature('聊天 API 端點')
+@allure.story('Skill 啟用/停用端點')
 class TestSkillManagement:
     """測試 Skill 啟用/停用端點 — POST /api/skills/{name}/activate & deactivate"""
 
     @pytest.mark.asyncio
+    @allure.title('啟用已註冊的 Skill 應成功')
     async def test_activate_registered_skill(self) -> None:
         """啟用已註冊的 Skill 應成功。"""
         from agent_core.skills.base import Skill
@@ -694,6 +727,7 @@ class TestSkillManagement:
         assert 'code_review' in mock_skills.list_active_skills()
 
     @pytest.mark.asyncio
+    @allure.title('啟用不存在的 Skill 應回傳 404')
     async def test_activate_unknown_skill_returns_404(self) -> None:
         """啟用不存在的 Skill 應回傳 404。"""
         from agent_core.skills.registry import SkillRegistry
@@ -709,6 +743,7 @@ class TestSkillManagement:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
+    @allure.title('停用已啟用的 Skill 應成功')
     async def test_deactivate_active_skill(self) -> None:
         """停用已啟用的 Skill 應成功。"""
         from agent_core.skills.base import Skill
@@ -732,6 +767,7 @@ class TestSkillManagement:
         assert 'code_review' not in mock_skills.list_active_skills()
 
     @pytest.mark.asyncio
+    @allure.title('停用不存在的 Skill 應回傳 404')
     async def test_deactivate_unknown_skill_returns_404(self) -> None:
         """停用不存在的 Skill 應回傳 404。"""
         from agent_core.skills.registry import SkillRegistry
@@ -747,6 +783,7 @@ class TestSkillManagement:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
+    @allure.title('skill_registry 為 None 時應回傳 404')
     async def test_activate_when_no_skill_registry(self) -> None:
         """skill_registry 為 None 時應回傳 404。"""
         with patch('agent_app.main.skill_registry', None):
@@ -758,6 +795,7 @@ class TestSkillManagement:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
+    @allure.title('啟用 Skill 後，/api/agent/status 應反映變更')
     async def test_status_reflects_activation(self) -> None:
         """啟用 Skill 後，/api/agent/status 應反映變更。"""
         from agent_core.skills.base import Skill
@@ -782,10 +820,13 @@ class TestSkillManagement:
                 assert 'tdd' in after.json()['skills']['active']
 
 
+@allure.feature('聊天 API 端點')
+@allure.story('Session API 應支援 RESTful 操作')
 class TestSessionAPI:
     """測試 RESTful Session API — 對應 Rule: Session API 應支援 RESTful 操作"""
 
     @pytest.mark.asyncio
+    @allure.title('POST /api/sessions 應建立新 session')
     async def test_create_session(self) -> None:
         """POST /api/sessions 應建立新 session。"""
         mock_session = _make_mock_session_manager()
@@ -802,6 +843,7 @@ class TestSessionAPI:
         assert len(data['session_id']) > 0
 
     @pytest.mark.asyncio
+    @allure.title('GET /api/sessions 應回傳 session 摘要列表')
     async def test_list_sessions(self) -> None:
         """GET /api/sessions 應回傳 session 摘要列表。"""
         mock_session = _make_mock_session_manager()
@@ -834,6 +876,7 @@ class TestSessionAPI:
         assert len(data['sessions']) == 2
 
     @pytest.mark.asyncio
+    @allure.title('GET /api/sessions/{id} 應回傳特定 session 的對話歷史')
     async def test_get_session_history(self) -> None:
         """GET /api/sessions/{id} 應回傳特定 session 的對話歷史。"""
         mock_session = _make_mock_session_manager()
@@ -857,6 +900,7 @@ class TestSessionAPI:
         mock_session.load.assert_called_once_with('abc')
 
     @pytest.mark.asyncio
+    @allure.title('GET /api/sessions/{id} 不存在的 session 應回傳 404')
     async def test_get_nonexistent_session_returns_404(self) -> None:
         """GET /api/sessions/{id} 不存在的 session 應回傳 404。"""
         mock_session = _make_mock_session_manager()
@@ -871,6 +915,7 @@ class TestSessionAPI:
         assert response.status_code == 404
 
     @pytest.mark.asyncio
+    @allure.title('DELETE /api/sessions/{id} 應刪除特定 session')
     async def test_delete_session(self) -> None:
         """DELETE /api/sessions/{id} 應刪除特定 session。"""
         mock_session = _make_mock_session_manager()
@@ -886,10 +931,13 @@ class TestSessionAPI:
         mock_session.delete_session.assert_called_once_with('abc')
 
 
+@allure.feature('聊天 API 端點')
+@allure.story('工具執行時應推送 SSE 事件')
 class TestFileEventStreaming:
     """測試檔案事件 SSE 推送 — 對應 Rule: 工具執行時應推送 SSE 事件"""
 
     @pytest.mark.asyncio
+    @allure.title('_stream_chat 應推送工具回傳的 file_open 事件。')
     async def test_stream_chat_emits_file_open_event(self) -> None:
         """_stream_chat 應推送工具回傳的 file_open 事件。
 
@@ -980,6 +1028,7 @@ class TestFileEventStreaming:
         assert file_open_events[0]['data']['content'] == 'print("hello")'
 
     @pytest.mark.asyncio
+    @allure.title('_stream_chat 應推送工具回傳的 file_change 事件。')
     async def test_stream_chat_emits_file_change_event(self) -> None:
         """_stream_chat 應推送工具回傳的 file_change 事件。
 
@@ -1074,10 +1123,13 @@ class TestFileEventStreaming:
 USAGE_URL = '/api/chat/usage'
 
 
+@allure.feature('聊天 API 端點')
+@allure.story('Usage 端點應回傳 context 區塊')
 class TestChatUsageContext:
     """測試 /api/chat/usage 端點的 context 區塊。"""
 
     @pytest.mark.asyncio
+    @allure.title('有使用記錄時應回傳 context 區塊')
     async def test_usage_returns_context_block_with_records(self) -> None:
         """有使用記錄時應回傳 context 區塊。"""
         mock_session = _make_mock_session_manager()
@@ -1112,6 +1164,7 @@ class TestChatUsageContext:
         assert ctx['usage_percent'] > 0
 
     @pytest.mark.asyncio
+    @allure.title('無使用記錄時 context 區塊的 current_tokens 應為 0')
     async def test_usage_returns_context_block_empty(self) -> None:
         """無使用記錄時 context 區塊的 current_tokens 應為 0。"""
         mock_session = _make_mock_session_manager()

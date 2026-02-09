@@ -265,6 +265,22 @@ uv run pytest tests/manual --run-smoke -v
 
 **注意：** Smoke test 會呼叫真實的 Claude API 並產生費用，執行前必須設定環境變數並加上 `--run-smoke` 參數。
 
+### 產生 Allure 測試報告
+
+```bash
+# 執行測試並收集 Allure 資料
+uv run pytest --alluredir=allure-results
+
+# 在瀏覽器中開啟報告（啟動臨時伺服器）
+allure serve allure-results
+
+# 或分步驟：產生靜態 HTML 報告後開啟
+allure generate allure-results -o allure-report --clean
+allure open allure-report
+```
+
+**前置需求：** 需安裝 Allure CLI (`brew install allure`)。
+
 ### 型別檢查與程式碼品質
 
 ```bash

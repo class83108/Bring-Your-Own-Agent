@@ -18,6 +18,7 @@ from __future__ import annotations
 import time
 from typing import Any
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -27,9 +28,12 @@ from agent_core.providers.anthropic_provider import AnthropicProvider
 pytestmark = pytest.mark.smoke
 
 
+@allure.feature('Provider 抽象層')
+@allure.story('Anthropic Provider 應支援 Prompt Caching (Smoke)')
 class TestPromptCachingSmoke:
     """Smoke test - 驗證 Prompt Caching 實際生效。"""
 
+    @allure.title('驗證第二次請求能使用緩存')
     async def test_cache_hit_on_second_request(self) -> None:
         """驗證第二次請求能使用緩存。
 
@@ -121,6 +125,7 @@ class TestPromptCachingSmoke:
             f'{second_request_cache_creation}'
         )
 
+    @allure.title('驗證對話歷史被正確緩存')
     async def test_cache_includes_conversation_history(self) -> None:
         """驗證對話歷史被正確緩存。
 

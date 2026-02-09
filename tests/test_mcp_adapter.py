@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
+import allure
+
 from agent_core.mcp import MCPServerConfig, MCPToolAdapter, MCPToolDefinition
 from agent_core.tools.registry import ToolRegistry
 
@@ -38,9 +40,12 @@ def _make_mock_client(
 # =============================================================================
 
 
+@allure.feature('MCP Server 整合')
+@allure.story('應能探索 MCP Server 的工具')
 class TestMCPToolDiscovery:
     """MCP 工具探索測試。"""
 
+    @allure.title('列出 MCP Server 提供的工具')
     async def test_list_tools_from_server(self) -> None:
         """Scenario: 列出 MCP Server 提供的工具。"""
         tools = [
@@ -69,9 +74,12 @@ class TestMCPToolDiscovery:
 # =============================================================================
 
 
+@allure.feature('MCP Server 整合')
+@allure.story('MCP 工具應能註冊到 ToolRegistry')
 class TestMCPToolRegistration:
     """MCP 工具註冊到 ToolRegistry 測試。"""
 
+    @allure.title('MCP 工具自動加上前綴')
     async def test_tools_registered_with_prefix(self) -> None:
         """Scenario: MCP 工具自動加上前綴。"""
         tools = [
@@ -110,6 +118,7 @@ class TestMCPToolRegistration:
         tool = registry._tools['weather__get_forecast']  # pyright: ignore[reportPrivateUsage]
         assert tool.source == 'mcp'
 
+    @allure.title('多個 MCP 工具都應註冊成功')
     async def test_multiple_tools_registered(self) -> None:
         """多個 MCP 工具都應註冊成功。"""
         tools = [
@@ -134,9 +143,12 @@ class TestMCPToolRegistration:
 # =============================================================================
 
 
+@allure.feature('MCP Server 整合')
+@allure.story('執行 MCP 工具應委派給 Server')
 class TestMCPToolExecution:
     """MCP 工具執行測試。"""
 
+    @allure.title('執行 MCP 工具應委派給 Server')
     async def test_execute_delegates_to_client(self) -> None:
         """Scenario: 執行 MCP 工具應委派給 Server。"""
         tools = [
@@ -165,9 +177,12 @@ class TestMCPToolExecution:
 # =============================================================================
 
 
+@allure.feature('MCP Server 整合')
+@allure.story('MCP 連線生命週期')
 class TestMCPLifecycle:
     """MCP 連線生命週期測試。"""
 
+    @allure.title('關閉連線應清理資源')
     async def test_close_delegates_to_client(self) -> None:
         """Scenario: 關閉連線應清理資源。"""
         client = _make_mock_client('weather', [])
@@ -177,6 +192,7 @@ class TestMCPLifecycle:
 
         client.close.assert_called_once()
 
+    @allure.title('MCPServerConfig 應正確儲存配置')
     def test_mcp_server_config(self) -> None:
         """MCPServerConfig 應正確儲存配置。"""
         config = MCPServerConfig(

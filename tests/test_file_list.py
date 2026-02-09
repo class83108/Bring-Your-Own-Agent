@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 
 # =============================================================================
@@ -89,9 +90,12 @@ def list_files(sandbox_dir: Path) -> Any:
 # =============================================================================
 
 
+@allure.feature('列出檔案功能')
+@allure.story('Agent 應能列出目錄內容')
 class TestListDirectory:
     """測試基本目錄列出功能。"""
 
+    @allure.title('列出目錄中的檔案')
     def test_list_directory_with_files(self, list_files: Any) -> None:
         """Scenario: 列出目錄中的檔案。
 
@@ -105,6 +109,7 @@ class TestListDirectory:
         assert 'main.py' in result['files']
         assert 'utils' in result['directories']
 
+    @allure.title('列出空目錄')
     def test_list_empty_directory(self, list_files: Any) -> None:
         """Scenario: 列出空目錄。
 
@@ -118,6 +123,7 @@ class TestListDirectory:
         assert len(result['files']) == 0
         assert len(result['directories']) == 0
 
+    @allure.title('列出不存在的目錄')
     def test_list_nonexistent_directory(self, list_files: Any) -> None:
         """Scenario: 列出不存在的目錄。
 
@@ -128,6 +134,7 @@ class TestListDirectory:
         with pytest.raises(FileNotFoundError):
             list_files('nonexistent')
 
+    @allure.title('列出當前工作目錄')
     def test_list_current_directory(self, list_files: Any) -> None:
         """Scenario: 列出當前工作目錄。
 
@@ -148,9 +155,12 @@ class TestListDirectory:
 # =============================================================================
 
 
+@allure.feature('列出檔案功能')
+@allure.story('Agent 應支援遞迴列出檔案')
 class TestRecursiveListing:
     """測試遞迴列出功能。"""
 
+    @allure.title('遞迴列出所有檔案')
     def test_recursive_list_all_files(self, list_files: Any) -> None:
         """Scenario: 遞迴列出所有檔案。
 
@@ -167,6 +177,7 @@ class TestRecursiveListing:
         assert 'src/utils/config.py' in all_files
         assert 'tests/test_main.py' in all_files
 
+    @allure.title('限制遞迴深度')
     def test_limit_recursion_depth(self, list_files: Any) -> None:
         """Scenario: 限制遞迴深度。
 
@@ -188,9 +199,12 @@ class TestRecursiveListing:
 # =============================================================================
 
 
+@allure.feature('列出檔案功能')
+@allure.story('Agent 應支援檔案過濾')
 class TestFileFiltering:
     """測試檔案過濾功能。"""
 
+    @allure.title('按副檔名過濾')
     def test_filter_by_extension(self, list_files: Any) -> None:
         """Scenario: 按副檔名過濾。
 
@@ -208,6 +222,7 @@ class TestFileFiltering:
         assert 'README.md' not in all_files
         assert 'script.js' not in all_files
 
+    @allure.title('按檔名模式過濾')
     def test_filter_by_pattern(self, list_files: Any) -> None:
         """Scenario: 按檔名模式過濾。
 
@@ -223,6 +238,7 @@ class TestFileFiltering:
         # 不應包含其他檔案
         assert 'src/main.py' not in all_files
 
+    @allure.title('排除特定目錄')
     def test_exclude_directories(self, list_files: Any) -> None:
         """Scenario: 排除特定目錄。
 
@@ -244,9 +260,12 @@ class TestFileFiltering:
 # =============================================================================
 
 
+@allure.feature('列出檔案功能')
+@allure.story('Agent 應正確顯示檔案資訊')
 class TestFileInformation:
     """測試檔案資訊顯示。"""
 
+    @allure.title('顯示檔案基本資訊')
     def test_show_basic_info(self, list_files: Any) -> None:
         """Scenario: 顯示檔案基本資訊。
 
@@ -262,6 +281,7 @@ class TestFileInformation:
         # 目錄不應出現在檔案列表中
         assert 'utils' not in result['files']
 
+    @allure.title('顯示詳細檔案資訊')
     def test_show_detailed_info(self, list_files: Any, sandbox_dir: Path) -> None:
         """Scenario: 顯示詳細檔案資訊。
 
@@ -287,9 +307,12 @@ class TestFileInformation:
 # =============================================================================
 
 
+@allure.feature('列出檔案功能')
+@allure.story('Agent 應處理特殊情況')
 class TestSpecialCases:
     """測試特殊情況處理。"""
 
+    @allure.title('處理隱藏檔案')
     def test_hide_hidden_files_by_default(self, list_files: Any) -> None:
         """Scenario: 處理隱藏檔案。
 
@@ -303,6 +326,7 @@ class TestSpecialCases:
         assert '.gitignore' not in result['files']
         assert '.env' not in result['files']
 
+    @allure.title('顯示隱藏檔案')
     def test_show_hidden_files_when_requested(self, list_files: Any) -> None:
         """Scenario: 顯示隱藏檔案。
 
@@ -315,6 +339,7 @@ class TestSpecialCases:
         assert '.gitignore' in result['files']
         assert '.env' in result['files']
 
+    @allure.title('測試路徑穿越攻擊防護')
     def test_block_path_traversal(self, list_files: Any) -> None:
         """測試路徑穿越攻擊防護。
 
@@ -324,6 +349,7 @@ class TestSpecialCases:
         with pytest.raises(PermissionError):
             list_files('../../../etc')
 
+    @allure.title('處理無權限的目錄')
     def test_handle_permission_denied(self, list_files: Any, sandbox_dir: Path) -> None:
         """Scenario: 處理無權限的目錄。
 

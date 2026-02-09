@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
 
+import allure
 import pytest
 
 from agent_core.agent import Agent
@@ -52,9 +53,12 @@ async def _collect_response(agent: Agent, message: str) -> str:
 # =============================================================================
 
 
+@allure.feature('Agent 核心架構')
+@allure.story('驗證 agent-core 可作為獨立 library 使用 (Smoke)')
 class TestAgentAsLibrary:
     """驗證 agent-core 可作為獨立 library 使用。"""
 
+    @allure.title('最小化使用：只需 AgentCoreConfig + AnthropicProvider 即可對話')
     async def test_minimal_agent_usage(self) -> None:
         """最小化使用：只需 AgentCoreConfig + AnthropicProvider 即可對話。"""
         config = AgentCoreConfig()
@@ -66,6 +70,7 @@ class TestAgentAsLibrary:
         assert len(response) > 0
         assert len(agent.conversation) == 2
 
+    @allure.title('使用者可以自訂 system prompt')
     async def test_custom_system_prompt(self) -> None:
         """使用者可以自訂 system prompt。"""
         config = AgentCoreConfig(
@@ -78,6 +83,7 @@ class TestAgentAsLibrary:
 
         assert '2' in response
 
+    @allure.title('使用者可以自訂 model 與 max_tokens')
     async def test_custom_model_config(self) -> None:
         """使用者可以自訂 model 與 max_tokens。"""
         config = AgentCoreConfig(
@@ -99,9 +105,12 @@ class TestAgentAsLibrary:
 # =============================================================================
 
 
+@allure.feature('Agent 核心架構')
+@allure.story('Tool Registry 應能動態管理工具 (Smoke)')
 class TestCustomTools:
     """驗證使用者可以註冊自訂工具並讓 Agent 使用。"""
 
+    @allure.title('Agent 可以使用使用者註冊的同步工具')
     async def test_sync_custom_tool(self) -> None:
         """Agent 可以使用使用者註冊的同步工具。"""
         registry = ToolRegistry()
@@ -144,6 +153,7 @@ class TestCustomTools:
         assert len(agent.conversation) >= 4
         assert '105' in response
 
+    @allure.title('Agent 可以使用使用者註冊的非同步工具')
     async def test_async_custom_tool(self) -> None:
         """Agent 可以使用使用者註冊的非同步工具。"""
         registry = ToolRegistry()
@@ -187,6 +197,7 @@ class TestCustomTools:
         assert len(agent.conversation) >= 4
         assert '小明' in response or 'engineer' in response
 
+    @allure.title('自訂工具可與內建工具共存')
     async def test_custom_tool_combined_with_builtin_tools(self, tmp_path: Path) -> None:
         """自訂工具可與內建工具共存。"""
         from agent_core.tools.setup import create_default_registry
@@ -244,9 +255,12 @@ class TestCustomTools:
 # =============================================================================
 
 
+@allure.feature('Agent 核心架構')
+@allure.story('Agent 應整合 Skill 系統 (Smoke)')
 class TestCustomSkills:
     """驗證使用者可以註冊 Skill 來擴充 Agent 行為。"""
 
+    @allure.title('啟用的 Skill 應改變 Agent 的回應行為')
     async def test_skill_modifies_agent_behavior(self) -> None:
         """啟用的 Skill 應改變 Agent 的回應行為。"""
         skill_registry = SkillRegistry()
@@ -275,6 +289,7 @@ class TestCustomSkills:
         parsed = json.loads(response)
         assert 'answer' in parsed
 
+    @allure.title('未啟用的 Skill：描述會出現在 system prompt，但完整 instructions 不會')
     async def test_inactive_skill_does_not_inject_instructions(self) -> None:
         """未啟用的 Skill：描述會出現在 system prompt，但完整 instructions 不會。"""
         skill_registry = SkillRegistry()
@@ -308,6 +323,7 @@ class TestCustomSkills:
         response = await _collect_response(agent, '請說 "你好"')
         assert len(response) > 0
 
+    @allure.title('Skill 與 Tool 可同時使用：skill instructions 注入 system prompt，工具正常執行')
     async def test_skill_combined_with_tools(self, tmp_path: Path) -> None:
         """Skill 與 Tool 可同時使用：skill instructions 注入 system prompt，工具正常執行。"""
         from agent_core.tools.setup import create_default_registry
@@ -356,9 +372,12 @@ class TestCustomSkills:
 # =============================================================================
 
 
+@allure.feature('Agent 核心架構')
+@allure.story('驗證 MCP 工具可以透過 Adapter 接入 Agent 並實際被呼叫 (Smoke)')
 class TestMCPIntegration:
     """驗證 MCP 工具可以透過 Adapter 接入 Agent 並實際被呼叫。"""
 
+    @allure.title('Agent 能呼叫 MCP 工具並將結果納入回應')
     async def test_mcp_tool_used_by_agent(self) -> None:
         """Agent 能呼叫 MCP 工具並將結果納入回應。"""
         # 模擬 MCP Server 提供天氣查詢工具
@@ -420,6 +439,7 @@ class TestMCPIntegration:
 
         await adapter.close()
 
+    @allure.title('MCP 工具可與內建工具共存')
     async def test_mcp_tools_combined_with_native_tools(self, tmp_path: Path) -> None:
         """MCP 工具可與內建工具共存。"""
         from agent_core.tools.setup import create_default_registry

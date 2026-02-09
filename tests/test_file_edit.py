@@ -13,6 +13,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import allure
 import pytest
 
 # =============================================================================
@@ -80,9 +81,12 @@ def edit_file(sandbox_dir: Path) -> Any:
 # =============================================================================
 
 
+@allure.feature('編輯檔案功能')
+@allure.story('Agent 應能建立新檔案')
 class TestCreateFile:
     """測試建立新檔案功能。"""
 
+    @allure.title('建立新的程式檔案')
     def test_create_new_file(self, edit_file: Any, sandbox_dir: Path) -> None:
         """Scenario: 建立新的程式檔案。
 
@@ -106,6 +110,7 @@ class TestCreateFile:
         assert file_path.exists()
         assert file_path.read_text(encoding='utf-8') == 'def new_function():\n    pass\n'
 
+    @allure.title('建立檔案在不存在的目錄')
     def test_create_file_with_new_directory(self, edit_file: Any, sandbox_dir: Path) -> None:
         """Scenario: 建立檔案在不存在的目錄。
 
@@ -128,6 +133,7 @@ class TestCreateFile:
         assert dir_path.exists()
         assert file_path.exists()
 
+    @allure.title('拒絕覆蓋已存在的檔案')
     def test_refuse_to_overwrite_existing_file(self, edit_file: Any) -> None:
         """Scenario: 拒絕覆蓋已存在的檔案。
 
@@ -148,9 +154,12 @@ class TestCreateFile:
 # =============================================================================
 
 
+@allure.feature('編輯檔案功能')
+@allure.story('Agent 應能編輯現有檔案')
 class TestEditExistingFile:
     """測試編輯現有檔案功能。"""
 
+    @allure.title('替換檔案中的特定內容')
     def test_replace_content(self, edit_file: Any, sandbox_dir: Path) -> None:
         """Scenario: 替換檔案中的特定內容。
 
@@ -172,6 +181,7 @@ class TestEditExistingFile:
         assert 'def new_function():' in content
         assert 'def old_function():' not in content
 
+    @allure.title('在特定位置插入內容')
     def test_insert_content(self, edit_file: Any, sandbox_dir: Path) -> None:
         """Scenario: 在特定位置插入內容。
 
@@ -199,6 +209,7 @@ class TestEditExistingFile:
         content = (sandbox_dir / 'src' / 'model.py').read_text(encoding='utf-8')
         assert 'def get_name(self):' in content
 
+    @allure.title('刪除特定內容')
     def test_delete_content(self, edit_file: Any, sandbox_dir: Path) -> None:
         """Scenario: 刪除特定內容。
 
@@ -226,9 +237,12 @@ class TestEditExistingFile:
 # =============================================================================
 
 
+@allure.feature('編輯檔案功能')
+@allure.story('Agent 應使用精確的編輯方式')
 class TestPreciseEditing:
     """測試精確編輯功能。"""
 
+    @allure.title('處理搜尋內容不存在')
     def test_search_content_not_found(self, edit_file: Any) -> None:
         """Scenario: 處理搜尋內容不存在。
 
@@ -243,6 +257,7 @@ class TestPreciseEditing:
                 new_content='new content',
             )
 
+    @allure.title('處理多個匹配')
     def test_multiple_matches_error(self, edit_file: Any) -> None:
         """Scenario: 處理多個匹配。
 
@@ -263,9 +278,12 @@ class TestPreciseEditing:
 # =============================================================================
 
 
+@allure.feature('編輯檔案功能')
+@allure.story('Agent 應處理編輯安全性')
 class TestEditSecurity:
     """測試編輯安全性。"""
 
+    @allure.title('阻擋編輯工作目錄外的檔案')
     def test_block_edit_outside_sandbox(self, edit_file: Any) -> None:
         """Scenario: 阻擋編輯工作目錄外的檔案。
 
@@ -280,6 +298,7 @@ class TestEditSecurity:
                 new_content='new',
             )
 
+    @allure.title('阻擋路徑穿越攻擊')
     def test_block_path_traversal(self, edit_file: Any) -> None:
         """阻擋路徑穿越攻擊。"""
         with pytest.raises(PermissionError):
@@ -295,9 +314,12 @@ class TestEditSecurity:
 # =============================================================================
 
 
+@allure.feature('編輯檔案功能')
+@allure.story('Agent 應驗證編輯結果')
 class TestFileEditSSEEvents:
     """測試編輯檔案時回傳 SSE 事件資料。"""
 
+    @allure.title('編輯檔案時回傳 SSE 事件與 diff')
     def test_edit_file_returns_sse_events_with_diff(self, edit_file: Any) -> None:
         """Scenario: 編輯檔案時回傳 SSE 事件與 diff。
 
@@ -334,6 +356,7 @@ class TestFileEditSSEEvents:
         assert '-def old_function():' in diff
         assert '+def new_function():' in diff
 
+    @allure.title('建立新檔案時回傳 SSE 事件與 diff')
     def test_create_file_returns_sse_events_with_diff(self, edit_file: Any) -> None:
         """Scenario: 建立新檔案時回傳 SSE 事件與 diff。
 
