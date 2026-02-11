@@ -25,6 +25,7 @@ import pytest
 from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig
 from agent_core.providers.anthropic_provider import AnthropicProvider
+from agent_core.sandbox import LocalSandbox
 from agent_core.tools.setup import create_default_registry
 
 pytestmark = pytest.mark.smoke
@@ -84,7 +85,7 @@ class TestSmokeWebFetch:
         base_url, _ = local_server
 
         registry = create_default_registry(
-            tmp_path,
+            LocalSandbox(root=tmp_path),
             web_fetch_allowed_hosts=['127.0.0.1'],
         )
         prompt = '你是網頁分析助手。使用 web_fetch 工具擷取指定網頁。'
@@ -130,7 +131,7 @@ class TestSmokeWebSearch:
         tavily_key = os.environ['TAVILY_API_KEY']
 
         registry = create_default_registry(
-            tmp_path,
+            LocalSandbox(root=tmp_path),
             tavily_api_key=tavily_key,
         )
         prompt = '你是搜尋助手。使用 web_search 工具搜尋資訊。'

@@ -59,18 +59,20 @@ class TestThinkRegistration:
     @allure.title('create_default_registry 應包含 think 工具')
     def test_think_in_default_registry(self, tmp_path: Any) -> None:
         """預設註冊表應包含 think。"""
+        from agent_core.sandbox import LocalSandbox
         from agent_core.tools.setup import create_default_registry
 
-        registry = create_default_registry(tmp_path)
+        registry = create_default_registry(LocalSandbox(root=tmp_path))
         assert 'think' in registry.list_tools()
 
     @allure.title('透過 registry 執行 think 工具')
     @pytest.mark.asyncio
     async def test_execute_think_via_registry(self, tmp_path: Any) -> None:
         """透過 registry.execute 執行 think 應回傳正確結果。"""
+        from agent_core.sandbox import LocalSandbox
         from agent_core.tools.setup import create_default_registry
 
-        registry = create_default_registry(tmp_path)
+        registry = create_default_registry(LocalSandbox(root=tmp_path))
         result: dict[str, Any] = await registry.execute('think', {'thought': '讓我想想這個問題'})
         assert result['status'] == 'recorded'
         assert result['thought'] == '讓我想想這個問題'

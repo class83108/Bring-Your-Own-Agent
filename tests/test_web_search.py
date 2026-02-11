@@ -135,14 +135,16 @@ class TestWebSearchRegistration:
 
     @allure.title('提供 API key 時 create_default_registry 應包含 web_search')
     def test_web_search_in_registry(self, tmp_path: Any) -> None:
+        from agent_core.sandbox import LocalSandbox
         from agent_core.tools.setup import create_default_registry
 
-        registry = create_default_registry(tmp_path, tavily_api_key='test-key')
+        registry = create_default_registry(LocalSandbox(root=tmp_path), tavily_api_key='test-key')
         assert 'web_search' in registry.list_tools()
 
     @allure.title('未提供 API key 時不應包含 web_search')
     def test_web_search_not_in_registry_without_key(self, tmp_path: Any) -> None:
+        from agent_core.sandbox import LocalSandbox
         from agent_core.tools.setup import create_default_registry
 
-        registry = create_default_registry(tmp_path)
+        registry = create_default_registry(LocalSandbox(root=tmp_path))
         assert 'web_search' not in registry.list_tools()

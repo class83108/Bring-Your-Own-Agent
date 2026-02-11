@@ -14,6 +14,7 @@ from agent_core.memory import (
     MEMORY_TOOL_PARAMETERS,
     create_memory_handler,
 )
+from agent_core.sandbox.base import Sandbox
 from agent_core.tools.bash import bash_handler
 from agent_core.tools.file_edit import edit_file_handler
 from agent_core.tools.file_list import list_files_handler
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 def create_default_registry(
-    sandbox_root: Path,
+    sandbox: Sandbox,
     lock_provider: Any | None = None,
     memory_dir: Path | None = None,
     web_fetch_allowed_hosts: list[str] | None = None,
@@ -35,7 +36,7 @@ def create_default_registry(
     """建立預設的工具註冊表，包含所有內建工具。
 
     Args:
-        sandbox_root: sandbox 根目錄，用於限制檔案操作範圍
+        sandbox: Sandbox 實例，用於限制檔案操作範圍
         lock_provider: 鎖提供者（可選，用於避免檔案競爭）
         memory_dir: 記憶目錄（可選，提供時啟用 memory 工具）
         web_fetch_allowed_hosts: 允許存取的主機清單（提供時啟用 web_fetch 工具）
@@ -44,6 +45,9 @@ def create_default_registry(
     Returns:
         已註冊所有內建工具的 ToolRegistry
     """
+    # 從 Sandbox 取得根目錄路徑，供現有 handler 使用
+    sandbox_root = Path(sandbox.validate_path('.'))
+
     registry = ToolRegistry(lock_provider=lock_provider)
 
     # 註冊 read_file 工具

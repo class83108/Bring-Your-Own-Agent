@@ -19,6 +19,7 @@ from typing import Any, Protocol
 from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig, ProviderConfig
 from agent_core.providers.anthropic_provider import AnthropicProvider
+from agent_core.sandbox import LocalSandbox
 from agent_core.token_counter import TokenCounter
 from agent_core.tools.setup import create_default_registry
 from agent_core.types import AgentEvent, MessageParam
@@ -207,7 +208,7 @@ class EvalRunner:
         config_dict = tools_config or {}
         memory_dir = sandbox / '.memories' if self.enable_memory else None
         registry = create_default_registry(
-            sandbox,
+            LocalSandbox(root=sandbox),
             memory_dir=memory_dir,
             web_fetch_allowed_hosts=config_dict.get('web_fetch_allowed_hosts'),
             tavily_api_key=config_dict.get('tavily_api_key', ''),

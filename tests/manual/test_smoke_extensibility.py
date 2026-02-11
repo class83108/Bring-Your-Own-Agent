@@ -200,13 +200,14 @@ class TestCustomTools:
     @allure.title('自訂工具可與內建工具共存')
     async def test_custom_tool_combined_with_builtin_tools(self, tmp_path: Path) -> None:
         """自訂工具可與內建工具共存。"""
+        from agent_core.sandbox import LocalSandbox
         from agent_core.tools.setup import create_default_registry
 
         sandbox = tmp_path / 'sandbox'
         sandbox.mkdir()
         (sandbox / 'data.txt').write_text('價格: 100\n數量: 3\n', encoding='utf-8')
 
-        registry = create_default_registry(sandbox)
+        registry = create_default_registry(LocalSandbox(root=sandbox))
 
         # 在內建工具的基礎上追加自訂工具
         def calculator(expression: str) -> dict[str, Any]:
@@ -326,13 +327,14 @@ class TestCustomSkills:
     @allure.title('Skill 與 Tool 可同時使用：skill instructions 注入 system prompt，工具正常執行')
     async def test_skill_combined_with_tools(self, tmp_path: Path) -> None:
         """Skill 與 Tool 可同時使用：skill instructions 注入 system prompt，工具正常執行。"""
+        from agent_core.sandbox import LocalSandbox
         from agent_core.tools.setup import create_default_registry
 
         sandbox = tmp_path / 'sandbox'
         sandbox.mkdir()
         (sandbox / 'config.yaml').write_text('name: my-app\nversion: 1.0\n', encoding='utf-8')
 
-        registry = create_default_registry(sandbox)
+        registry = create_default_registry(LocalSandbox(root=sandbox))
         skill_registry = SkillRegistry()
         concise_instructions = '回覆時盡量簡短，不超過 30 個字。直接回答重點。'
         skill_registry.register(
@@ -442,6 +444,7 @@ class TestMCPIntegration:
     @allure.title('MCP 工具可與內建工具共存')
     async def test_mcp_tools_combined_with_native_tools(self, tmp_path: Path) -> None:
         """MCP 工具可與內建工具共存。"""
+        from agent_core.sandbox import LocalSandbox
         from agent_core.tools.setup import create_default_registry
 
         sandbox = tmp_path / 'sandbox'
@@ -449,7 +452,7 @@ class TestMCPIntegration:
         (sandbox / 'cities.txt').write_text('台北\n東京\n紐約\n', encoding='utf-8')
 
         # 先建立內建工具
-        registry = create_default_registry(sandbox)
+        registry = create_default_registry(LocalSandbox(root=sandbox))
 
         # 再追加 MCP 工具
         mock_client = AsyncMock()

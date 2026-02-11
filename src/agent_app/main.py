@@ -24,6 +24,7 @@ from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig
 from agent_core.multimodal import Attachment
 from agent_core.providers.anthropic_provider import AnthropicProvider
+from agent_core.sandbox import LocalSandbox
 from agent_core.session import SQLiteSessionBackend
 from agent_core.skills.registry import SkillRegistry
 from agent_core.token_counter import get_context_window
@@ -62,7 +63,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     sandbox_root = Path(SANDBOX_DIR)
     memory_dir = Path(MEMORY_DIR)
     tool_registry = create_default_registry(
-        sandbox_root,
+        LocalSandbox(root=sandbox_root),
         memory_dir=memory_dir,
         web_fetch_allowed_hosts=[],
         tavily_api_key=TAVILY_API_KEY,

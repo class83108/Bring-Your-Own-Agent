@@ -16,6 +16,7 @@ import pytest
 from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig
 from agent_core.providers.anthropic_provider import AnthropicProvider
+from agent_core.sandbox import LocalSandbox
 from agent_core.tools.setup import create_default_registry
 from agent_core.types import AgentEvent
 
@@ -48,7 +49,7 @@ class TestSmokeParallelTools:
     @allure.title('驗證 Agent 能處理多個工具調用並回傳所有結果')
     async def test_agent_handles_multiple_tool_calls(self, sandbox_with_files: Path) -> None:
         """驗證 Agent 能處理多個工具調用並回傳所有結果。"""
-        registry = create_default_registry(sandbox_with_files)
+        registry = create_default_registry(LocalSandbox(root=sandbox_with_files))
         prompt = '你是程式開發助手。當被要求讀取多個檔案時，請一次調用多個 read_file 工具同時讀取。'
         config = AgentCoreConfig(system_prompt=prompt)
         provider = AnthropicProvider(config.provider)

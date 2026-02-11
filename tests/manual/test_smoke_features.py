@@ -35,6 +35,7 @@ from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig
 from agent_core.multimodal import Attachment
 from agent_core.providers.anthropic_provider import AnthropicProvider
+from agent_core.sandbox import LocalSandbox
 from agent_core.skills.base import Skill
 from agent_core.skills.registry import SkillRegistry
 from agent_core.token_counter import TokenCounter
@@ -221,7 +222,7 @@ class TestToolResultPaginationSmoke:
         (sandbox / 'large_file.txt').write_text(large_content, encoding='utf-8')
 
         # 使用較小的 max_result_chars 以確保觸發分頁
-        registry = create_default_registry(sandbox)
+        registry = create_default_registry(LocalSandbox(root=sandbox))
         registry.max_result_chars = 500
 
         config = AgentCoreConfig(

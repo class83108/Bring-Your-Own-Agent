@@ -19,6 +19,7 @@ import pytest
 from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig
 from agent_core.providers.anthropic_provider import AnthropicProvider
+from agent_core.sandbox import LocalSandbox
 from agent_core.tools.setup import create_default_registry
 
 pytestmark = pytest.mark.smoke
@@ -61,7 +62,7 @@ class TestSmokeFileList:
     @allure.title('驗證 Agent 能調用 list_files 工具並列出目錄內容')
     async def test_agent_lists_directory(self, sandbox_dir: Path) -> None:
         """驗證 Agent 能調用 list_files 工具並列出目錄內容。"""
-        registry = create_default_registry(sandbox_dir)
+        registry = create_default_registry(LocalSandbox(root=sandbox_dir))
         prompt = '你是程式開發助手。當被要求列出檔案時，請使用 list_files 工具。'
         config = AgentCoreConfig(system_prompt=prompt)
         provider = AnthropicProvider(config.provider)
@@ -88,7 +89,7 @@ class TestSmokeFileList:
     @allure.title('驗證 Agent 能遞迴列出所有 Python 檔案')
     async def test_agent_lists_recursively(self, sandbox_dir: Path) -> None:
         """驗證 Agent 能遞迴列出所有 Python 檔案。"""
-        registry = create_default_registry(sandbox_dir)
+        registry = create_default_registry(LocalSandbox(root=sandbox_dir))
         prompt = '你是程式開發助手。當被要求列出檔案時，請使用 list_files 工具。'
         config = AgentCoreConfig(system_prompt=prompt)
         provider = AnthropicProvider(config.provider)

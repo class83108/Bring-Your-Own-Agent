@@ -19,6 +19,7 @@ import pytest
 from agent_core.agent import Agent
 from agent_core.config import AgentCoreConfig
 from agent_core.providers.anthropic_provider import AnthropicProvider
+from agent_core.sandbox import LocalSandbox
 from agent_core.tools.setup import create_default_registry
 
 pytestmark = pytest.mark.smoke
@@ -47,7 +48,7 @@ class TestSmokeFileRead:
     @allure.title('驗證 Agent 能調用 read_file 工具並回傳檔案內容')
     async def test_agent_reads_file_with_tool(self, sandbox_dir: Path) -> None:
         """驗證 Agent 能調用 read_file 工具並回傳檔案內容。"""
-        registry = create_default_registry(sandbox_dir)
+        registry = create_default_registry(LocalSandbox(root=sandbox_dir))
         prompt = '你是程式開發助手。當被要求讀取檔案時，請使用 read_file 工具。'
         config = AgentCoreConfig(system_prompt=prompt)
         provider = AnthropicProvider(config.provider)
