@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Eval Conversation Viewer</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d29922;
+    --user-bg: #1a3a5c;
+    --assistant-bg: #1c2333;
+    --tool-bg: #1a1e2a;
+    --tool-result-bg: #121820;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 頂部標題列 */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  header h1 {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  header .badge {
+    font-size: 11px;
+    background: var(--accent);
+    color: var(--bg);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  /* 主要三欄佈局 */
+  .layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* 左側：Run 列表 */
+  .panel-runs {
+    width: 280px;
+    min-width: 280px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+  }
+  .panel-title {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.5px;
+  }
+  .panel-content {
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  /* Run 卡片 */
+  .run-item {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .run-item:hover { background: var(--surface2); }
+  .run-item.active { background: var(--surface2); border-left: 3px solid var(--accent); }
+  .run-version {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .run-meta {
+    font-size: 12px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .run-meta .pass-rate {
+    color: var(--green);
+    font-weight: 600;
+  }
+  .run-meta .pass-rate.has-fail { color: var(--orange); }
+
+  /* 中間：Task 列表 */
+  .panel-tasks {
+    width: 320px;
+    min-width: 320px;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .task-item {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .task-item:hover { background: var(--surface2); }
+  .task-item.active { background: var(--surface2); border-left: 3px solid var(--accent); }
+  .task-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .task-status.pass { background: var(--green); }
+  .task-status.fail { background: var(--red); }
+  .task-info { flex: 1; min-width: 0; }
+  .task-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .task-meta {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    display: flex;
+    gap: 10px;
+  }
+  .task-score {
+    font-weight: 600;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+  .task-score.full { color: var(--green); }
+  .task-score.partial { color: var(--orange); }
+  .task-score.zero { color: var(--red); }
+
+  /* 右側：對話檢視器 */
+  .panel-conversation {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .conv-header {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .conv-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+
+  /* 空狀態 */
+  .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  /* 訊息氣泡 */
+  .message {
+    margin-bottom: 16px;
+    max-width: 100%;
+  }
+  .message-role {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+    padding-left: 4px;
+  }
+  .message-role.user { color: var(--accent); }
+  .message-role.assistant { color: var(--green); }
+
+  .message-content {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+  .message.user .message-content {
+    background: var(--user-bg);
+    border: 1px solid #254a73;
+  }
+  .message.assistant .message-content {
+    background: var(--assistant-bg);
+    border: 1px solid var(--border);
+  }
+
+  /* Markdown 樣式 */
+  .message-content p { margin-bottom: 8px; }
+  .message-content p:last-child { margin-bottom: 0; }
+  .message-content code {
+    background: rgba(110,118,129,0.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+  }
+  .message-content pre {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    overflow-x: auto;
+    margin: 8px 0;
+  }
+  .message-content pre code {
+    background: none;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .message-content ul, .message-content ol {
+    padding-left: 20px;
+    margin-bottom: 8px;
+  }
+  .message-content h1, .message-content h2, .message-content h3 {
+    margin: 12px 0 6px;
+    font-size: 15px;
+  }
+
+  /* Tool Call 區塊 */
+  .tool-block {
+    margin: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .tool-header {
+    background: var(--tool-bg);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+  }
+  .tool-header:hover { background: #222838; }
+  .tool-chevron {
+    font-size: 10px;
+    transition: transform 0.2s;
+    color: var(--text-dim);
+  }
+  .tool-chevron.open { transform: rotate(90deg); }
+  .tool-name {
+    font-weight: 600;
+    color: var(--orange);
+    font-family: 'SF Mono', Monaco, monospace;
+  }
+  .tool-id {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-left: auto;
+  }
+  .tool-body {
+    display: none;
+    background: var(--tool-result-bg);
+    border-top: 1px solid var(--border);
+  }
+  .tool-body.open { display: block; }
+  .tool-body pre {
+    padding: 12px;
+    font-size: 12px;
+    font-family: 'SF Mono', Monaco, monospace;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text);
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  /* Tool Result 區塊 */
+  .tool-result-block {
+    margin: 8px 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .tool-result-header {
+    background: var(--tool-result-bg);
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    user-select: none;
+  }
+  .tool-result-header:hover { background: #161c26; }
+  .tool-result-label {
+    font-weight: 600;
+    color: var(--text-dim);
+  }
+  .tool-result-label.error { color: var(--red); }
+  .tool-result-body {
+    display: none;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+  .tool-result-body.open { display: block; }
+  .tool-result-body pre {
+    padding: 12px;
+    font-size: 12px;
+    font-family: 'SF Mono', Monaco, monospace;
+    line-height: 1.5;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--text-dim);
+    max-height: 500px;
+    overflow-y: auto;
+  }
+
+  /* 篩選按鈕 */
+  .filter-bar {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    gap: 6px;
+  }
+  .filter-btn {
+    font-size: 11px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn:hover { border-color: var(--text-dim); color: var(--text); }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.1); }
+
+  /* 捲軸樣式 */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Eval Conversation Viewer</h1>
+  <span class="badge" id="run-count">—</span>
+</header>
+
+<div class="layout">
+  <!-- 左側：Run 列表 -->
+  <div class="panel-runs">
+    <div class="panel-title">Runs</div>
+    <div class="panel-content" id="run-list">
+      <div class="empty-state">載入中...</div>
+    </div>
+  </div>
+
+  <!-- 中間：Task 列表 -->
+  <div class="panel-tasks">
+    <div class="panel-title">Tasks</div>
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn" data-filter="pass">Pass</button>
+      <button class="filter-btn" data-filter="fail">Fail</button>
+    </div>
+    <div class="panel-content" id="task-list">
+      <div class="empty-state">選擇一個 Run</div>
+    </div>
+  </div>
+
+  <!-- 右側：對話檢視器 -->
+  <div class="panel-conversation">
+    <div class="conv-header">
+      <span id="conv-title">Conversation</span>
+      <span id="conv-meta" style="font-weight:400;"></span>
+    </div>
+    <div class="conv-body" id="conv-body">
+      <div class="empty-state">選擇一個 Task 查看對話</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = (s, el) => (el || document).querySelector(s);
+const $$ = (s, el) => [...(el || document).querySelectorAll(s)];
+
+let currentRunId = null;
+let currentTasks = [];
+let currentFilter = 'all';
+
+// 載入 Run 列表
+async function loadRuns() {
+  const resp = await fetch('/api/runs');
+  const runs = await resp.json();
+  $('#run-count').textContent = `${runs.length} runs`;
+
+  const container = $('#run-list');
+  if (runs.length === 0) {
+    container.innerHTML = '<div class="empty-state">尚無 eval 結果</div>';
+    return;
+  }
+
+  container.innerHTML = runs.map(r => {
+    const passed = r.passed || 0;
+    const total = r.total_tasks || 0;
+    const hasFail = passed < total;
+    const date = new Date(r.created_at).toLocaleString('zh-TW', {
+      month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+    return `
+      <div class="run-item" data-run-id="${r.run_id}">
+        <div class="run-version">${esc(r.agent_version)}</div>
+        <div class="run-meta">
+          <span class="pass-rate ${hasFail ? 'has-fail' : ''}">${passed}/${total}</span>
+          <span>score ${r.avg_score}</span>
+          <span>${esc(r.model)}</span>
+          <span>${date}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 綁定點擊
+  $$('.run-item', container).forEach(el => {
+    el.addEventListener('click', () => selectRun(el.dataset.runId));
+  });
+}
+
+// 選擇 Run
+async function selectRun(runId) {
+  currentRunId = runId;
+  $$('.run-item').forEach(el => el.classList.toggle('active', el.dataset.runId === runId));
+
+  const resp = await fetch(`/api/runs/${runId}`);
+  currentTasks = await resp.json();
+  renderTasks();
+
+  // 清空對話
+  $('#conv-body').innerHTML = '<div class="empty-state">選擇一個 Task 查看對話</div>';
+  $('#conv-title').textContent = 'Conversation';
+  $('#conv-meta').textContent = '';
+}
+
+// 渲染 Task 列表
+function renderTasks() {
+  const container = $('#task-list');
+  const filtered = currentTasks.filter(t => {
+    if (currentFilter === 'pass') return t.passed;
+    if (currentFilter === 'fail') return !t.passed;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state">無匹配的任務</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(t => {
+    const scoreClass = t.score >= 1.0 ? 'full' : t.score > 0 ? 'partial' : 'zero';
+    return `
+      <div class="task-item" data-result-id="${t.id}">
+        <div class="task-status ${t.passed ? 'pass' : 'fail'}"></div>
+        <div class="task-info">
+          <div class="task-name">${esc(t.task_name)}</div>
+          <div class="task-meta">
+            <span>${t.tool_calls} tools</span>
+            <span>${t.total_tokens.toLocaleString()} tokens</span>
+            <span>${t.duration_seconds.toFixed(1)}s</span>
+          </div>
+        </div>
+        <div class="task-score ${scoreClass}">${t.score.toFixed(2)}</div>
+      </div>
+    `;
+  }).join('');
+
+  $$('.task-item', container).forEach(el => {
+    el.addEventListener('click', () => selectTask(el.dataset.resultId));
+  });
+}
+
+// 選擇 Task — 載入對話
+async function selectTask(resultId) {
+  $$('.task-item').forEach(el => el.classList.toggle('active', el.dataset.resultId === resultId));
+
+  const resp = await fetch(`/api/results/${resultId}/conversation`);
+  const data = await resp.json();
+
+  $('#conv-title').textContent = data.task_name;
+  const msgCount = data.conversation.length;
+  $('#conv-meta').textContent = `${msgCount} messages`;
+
+  renderConversation(data.conversation);
+}
+
+// 渲染對話
+function renderConversation(messages) {
+  const container = $('#conv-body');
+  container.innerHTML = '';
+
+  for (const msg of messages) {
+    const role = msg.role;
+    const content = msg.content;
+
+    if (typeof content === 'string') {
+      // 純文字訊息
+      const div = createMessageDiv(role, marked.parse(content));
+      container.appendChild(div);
+    } else if (Array.isArray(content)) {
+      // 複合內容：text + tool_use + tool_result
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+
+      const roleLabel = document.createElement('div');
+      roleLabel.className = `message-role ${role}`;
+      roleLabel.textContent = role;
+      div.appendChild(roleLabel);
+
+      const body = document.createElement('div');
+      body.className = 'message-content';
+
+      for (const block of content) {
+        if (block.type === 'text') {
+          const textDiv = document.createElement('div');
+          textDiv.innerHTML = marked.parse(block.text || '');
+          body.appendChild(textDiv);
+        } else if (block.type === 'tool_use') {
+          body.appendChild(createToolUseBlock(block));
+        } else if (block.type === 'tool_result') {
+          body.appendChild(createToolResultBlock(block));
+        }
+      }
+
+      div.appendChild(body);
+      container.appendChild(div);
+    }
+  }
+
+  // 捲到最上方
+  container.scrollTop = 0;
+}
+
+function createMessageDiv(role, html) {
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  div.innerHTML = `
+    <div class="message-role ${role}">${role}</div>
+    <div class="message-content">${html}</div>
+  `;
+  return div;
+}
+
+function createToolUseBlock(block) {
+  const el = document.createElement('div');
+  el.className = 'tool-block';
+
+  const inputStr = JSON.stringify(block.input || {}, null, 2);
+  const shortId = (block.id || '').slice(-8);
+
+  el.innerHTML = `
+    <div class="tool-header" onclick="toggleBlock(this)">
+      <span class="tool-chevron">&#9654;</span>
+      <span class="tool-name">${esc(block.name || 'tool')}</span>
+      <span class="tool-id">${shortId}</span>
+    </div>
+    <div class="tool-body">
+      <pre>${esc(inputStr)}</pre>
+    </div>
+  `;
+  return el;
+}
+
+function createToolResultBlock(block) {
+  const el = document.createElement('div');
+  el.className = 'tool-result-block';
+
+  let content = '';
+  if (typeof block.content === 'string') {
+    content = block.content;
+  } else if (Array.isArray(block.content)) {
+    content = block.content.map(c => c.text || JSON.stringify(c)).join('\n');
+  }
+
+  // 嘗試格式化 JSON
+  try {
+    const parsed = JSON.parse(content);
+    content = JSON.stringify(parsed, null, 2);
+  } catch { /* 保持原樣 */ }
+
+  const isError = block.is_error;
+  const label = isError ? 'Tool Result (Error)' : 'Tool Result';
+  const shortId = (block.tool_use_id || '').slice(-8);
+
+  el.innerHTML = `
+    <div class="tool-result-header" onclick="toggleBlock(this)">
+      <span class="tool-chevron">&#9654;</span>
+      <span class="tool-result-label ${isError ? 'error' : ''}">${label}</span>
+      <span class="tool-id">${shortId}</span>
+    </div>
+    <div class="tool-result-body">
+      <pre>${esc(content)}</pre>
+    </div>
+  `;
+  return el;
+}
+
+// 切換展開/收合
+function toggleBlock(header) {
+  const chevron = header.querySelector('.tool-chevron');
+  const body = header.nextElementSibling;
+  const isOpen = body.classList.toggle('open');
+  chevron.classList.toggle('open', isOpen);
+}
+
+// HTML 跳脫
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+// 篩選按鈕
+$$('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    $$('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    renderTasks();
+  });
+});
+
+// 啟動
+loadRuns();
+</script>
+
+</body>
+</html>

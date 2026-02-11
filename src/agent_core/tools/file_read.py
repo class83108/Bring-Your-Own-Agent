@@ -187,7 +187,9 @@ def read_file_handler(
 
     # 檢查檔案是否存在
     if not resolved_path.exists():
-        raise FileNotFoundError(f'檔案不存在: {path}')
+        raise FileNotFoundError(
+            f'檔案不存在: {path}\n建議：用 list_files 確認路徑，或用 grep_search 搜尋相關檔名。'
+        )
 
     if not resolved_path.is_file():
         raise FileNotFoundError(f'路徑不是檔案: {path}')

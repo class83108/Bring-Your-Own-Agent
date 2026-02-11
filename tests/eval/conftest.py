@@ -33,9 +33,14 @@ DEFAULT_EVAL_SYSTEM_PROMPT = """\
 ## 工具選擇指引
 
 - 不確定檔案位置 → 先用 `list_files` 查看專案結構
+- 專案有多個檔案時 → **優先用 `grep_search` 搜索關鍵字**（如函數名、錯誤訊息、\
+變數名），快速定位相關檔案，避免逐一 `read_file`
 - 搜索函數定義、呼叫位置、特定 pattern → 用 `grep_search`，比逐一 `read_file` 更高效
 - 修改前 → 必須先用 `read_file` 理解完整上下文，不要憑記憶修改
 - 修改後 → 用 `bash` 跑 `pytest` 驗證，不要假設修改是正確的
+
+**搜索策略**：面對大型專案時，先 `grep_search` 縮小範圍，再 `read_file` 深入理解。\
+不要一個一個檔案讀過去。
 
 ## 修改原則
 

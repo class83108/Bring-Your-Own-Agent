@@ -138,7 +138,10 @@ def _edit_file(
     """
     # 檢查檔案是否存在
     if not resolved_path.exists():
-        raise FileNotFoundError(f'檔案不存在: {path}')
+        raise FileNotFoundError(
+            f'檔案不存在: {path}\n'
+            f'建議：用 list_files 確認路徑，或設定 create_if_missing=true 建立新檔案。'
+        )
 
     if not resolved_path.is_file():
         raise FileNotFoundError(f'路徑不是檔案: {path}')
@@ -152,7 +155,10 @@ def _edit_file(
     # 檢查要搜尋的內容是否存在
     if old_content not in original_content:
         logger.warning('找不到要替換的內容', extra={'path': path, 'old_content': old_content})
-        raise ValueError(f'找不到要替換的內容: {old_content}')
+        raise ValueError(
+            f'找不到要替換的內容。\n'
+            f'建議：用 read_file 重新讀取 {path}，確認 old_content 與檔案內容完全一致。'
+        )
 
     # 檢查是否有多處匹配
     count = original_content.count(old_content)

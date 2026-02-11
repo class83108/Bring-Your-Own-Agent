@@ -147,17 +147,22 @@ def _run_acceptance_tests(sandbox: Path) -> tuple[bool, str]:
 
         # 測試 4: 借出後不可再借
         try:
-            is_available = getattr(lib, 'is_available', None) or getattr(
-                lib, 'check_available', None
+            # 接受多種常見命名
+            is_available = (
+                getattr(lib, 'is_available', None)
+                or getattr(lib, 'check_available', None)
+                or getattr(lib, 'is_book_available', None)
             )
             if is_available:
                 if is_available('Python 入門'):
                     errors.append('書已被借出但仍顯示為可借')
-            # 或者嘗試再次借書應該失敗
+            # 或者嘗試再次借書應該失敗（拋例外或回傳 False 皆可）
             elif borrow_method:
                 try:
-                    borrow_method('Python 入門')
-                    errors.append('已借出的書不應該能再被借出')
+                    result = borrow_method('Python 入門')
+                    # 回傳 False 表示借閱失敗，視為合法行為
+                    if result is not False:
+                        errors.append('已借出的書不應該能再被借出')
                 except (ValueError, RuntimeError):
                     pass  # 預期行為
         except Exception as e:
