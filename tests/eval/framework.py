@@ -207,17 +207,25 @@ class EvalRunner:
         """
         config_dict = tools_config or {}
         memory_dir = sandbox / '.memories' if self.enable_memory else None
-        registry = create_default_registry(
-            LocalSandbox(root=sandbox),
-            memory_dir=memory_dir,
-            web_fetch_allowed_hosts=config_dict.get('web_fetch_allowed_hosts'),
-            tavily_api_key=config_dict.get('tavily_api_key', ''),
-        )
+
+        # 先建立 config 和 provider，供 subagent 使用
         config = AgentCoreConfig(
             provider=ProviderConfig(model=self.model),
             system_prompt=self.system_prompt,
         )
         provider = AnthropicProvider(config.provider)
+
+        # 若任務啟用 subagent，傳入 provider 和 config
+        enable_subagent = config_dict.get('enable_subagent', False)
+        registry = create_default_registry(
+            LocalSandbox(root=sandbox),
+            memory_dir=memory_dir,
+            web_fetch_allowed_hosts=config_dict.get('web_fetch_allowed_hosts'),
+            tavily_api_key=config_dict.get('tavily_api_key', ''),
+            subagent_provider=provider if enable_subagent else None,
+            subagent_config=config if enable_subagent else None,
+        )
+
         token_counter = TokenCounter()
         return Agent(
             config=config,

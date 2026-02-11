@@ -99,13 +99,15 @@ API 呼叫失敗（429 rate limit、網路閃斷）很常見，目前一失敗�
 
 目標：讓 `agent_core` 成為可獨立 `pip install` 的套件。
 
-### 6-1. Subagent 子代理機制
+### 6-1. Subagent 子代理機制 ✅
 
-- [ ] 撰寫 Subagent 測試（紅燈）
-- [ ] 實作 `create_subagent` 工具
-- [ ] 子 Agent 使用與父 Agent 相同的 Sandbox
-- [ ] 子 Agent 預設排除 `create_subagent` 工具（防遞迴）
-- [ ] 子 Agent 有獨立 context，完成後回傳摘要
+- [x] 撰寫 Subagent 測試（紅燈）
+- [x] 實作 `create_subagent` 工具
+- [x] 子 Agent 使用與父 Agent 相同的 Sandbox
+- [x] 子 Agent 預設排除 `create_subagent` 工具（防遞迴）
+- [x] 子 Agent 有獨立 context，完成後回傳摘要
+- [x] Smoke Test 驗證（真實 API）
+- [x] Eval T13 — Subagent Parallel Fix（得分 1.0）
 
 ### 6-2. 分離 feature 與 test ✅
 

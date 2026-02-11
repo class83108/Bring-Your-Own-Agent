@@ -105,6 +105,28 @@ class ToolRegistry:
             raise KeyError(f"工具 '{name}' 不存在")
         self._tools[name].source = source
 
+    def clone(self, exclude: list[str] | None = None) -> ToolRegistry:
+        """建立工具註冊表的副本，可選擇排除特定工具。
+
+        用於建立子 Agent 的工具註冊表，共享 handler 閉包（即共享 Sandbox）。
+
+        Args:
+            exclude: 要排除的工具名稱列表（可選）
+
+        Returns:
+            新的 ToolRegistry 實例
+        """
+        exclude_set: set[str] = set(exclude) if exclude else set()
+        new_registry = ToolRegistry(
+            lock_provider=self.lock_provider,
+            max_result_chars=self.max_result_chars,
+        )
+        for name, tool in self._tools.items():
+            if name in exclude_set:
+                continue
+            new_registry._tools[name] = tool
+        return new_registry
+
     def list_tools(self) -> list[str]:
         """列出所有已註冊的工具名稱。
 

@@ -32,6 +32,8 @@ def create_default_registry(
     memory_dir: Path | None = None,
     web_fetch_allowed_hosts: list[str] | None = None,
     tavily_api_key: str = '',
+    subagent_provider: Any | None = None,
+    subagent_config: Any | None = None,
 ) -> ToolRegistry:
     """建立預設的工具註冊表，包含所有內建工具。
 
@@ -41,6 +43,8 @@ def create_default_registry(
         memory_dir: 記憶目錄（可選，提供時啟用 memory 工具）
         web_fetch_allowed_hosts: 允許存取的主機清單（提供時啟用 web_fetch 工具）
         tavily_api_key: Tavily API key（提供時啟用 web_search 工具）
+        subagent_provider: LLM Provider 實例（提供時啟用 create_subagent 工具）
+        subagent_config: AgentCoreConfig 實例（與 subagent_provider 搭配使用）
 
     Returns:
         已註冊所有內建工具的 ToolRegistry
@@ -79,6 +83,10 @@ def create_default_registry(
     # 註冊 web_search 工具（可選）
     if tavily_api_key:
         _register_web_search(registry, tavily_api_key)
+
+    # 註冊 create_subagent 工具（可選）
+    if subagent_provider is not None and subagent_config is not None:
+        _register_create_subagent(registry, subagent_provider, subagent_config)
 
     logger.info('預設工具註冊表已建立', extra={'tools': registry.list_tools()})
     return registry
@@ -620,6 +628,59 @@ def _register_web_search(registry: ToolRegistry, api_key: str) -> None:
                 },
             },
             'required': ['query'],
+        },
+        handler=_handler,
+    )
+
+
+def _register_create_subagent(
+    registry: ToolRegistry,
+    provider: Any,
+    config: Any,
+) -> None:
+    """註冊 create_subagent 工具。
+
+    Args:
+        registry: 工具註冊表
+        provider: LLM Provider 實例
+        config: AgentCoreConfig 實例
+    """
+    from agent_core.tools.subagent import create_subagent_handler
+
+    async def _handler(task: str) -> dict[str, Any]:
+        """create_subagent handler 閉包，綁定 provider、config、registry。"""
+        return await create_subagent_handler(
+            task=task,
+            provider=provider,
+            config=config,
+            tool_registry=registry,
+        )
+
+    registry.register(
+        name='create_subagent',
+        description="""\
+建立子代理來執行獨立的子任務。
+
+使用時機：
+- 需要並行處理多個獨立的子任務
+- 任務可以明確拆分為不需要共享上下文的部分
+- 想避免當前對話歷史被大量中間步驟污染
+
+子代理特性：
+- 擁有獨立的對話歷史（不會影響父代理的 context）
+- 共享父代理的所有工具（除了 create_subagent，防止遞迴）
+- 完成後回傳結果摘要
+
+回傳：子代理的執行結果摘要文字。""",
+        parameters={
+            'type': 'object',
+            'properties': {
+                'task': {
+                    'type': 'string',
+                    'description': '要指派給子代理的任務描述（清楚說明目標與預期輸出）',
+                },
+            },
+            'required': ['task'],
         },
         handler=_handler,
     )
