@@ -5,7 +5,6 @@
 
 from agent_core.session.base import SessionBackend
 from agent_core.session.memory_backend import MemorySessionBackend
-from agent_core.session.redis_backend import SessionManager
 from agent_core.session.sqlite_backend import SQLiteSessionBackend
 
-__all__ = ['MemorySessionBackend', 'SQLiteSessionBackend', 'SessionBackend', 'SessionManager']
+__all__ = ['SessionBackend', 'MemorySessionBackend', 'SQLiteSessionBackend']

@@ -1,8 +1,8 @@
-# Agent Core
+# BYOA Core (Bring Your Own Agent)
 
 可擴充的 AI Agent 核心框架。透過 API 直接與 Claude 互動，自由組裝 Tools、Skills、MCP 來打造你自己的 Agent。
 
-## 為什麼選擇 Agent Core？
+## 為什麼選擇 BYOA Core？
 
 | 特點 | 說明 |
 |------|------|
@@ -16,8 +16,20 @@
 ### 安裝
 
 ```bash
-# 前置需求：Python 3.12+、uv
-uv sync
+# 基本安裝（核心功能）
+uv add byoa-core
+
+# 可選功能
+uv add byoa-core[web]    # web_fetch + web_search 工具
+uv add byoa-core[mcp]    # MCP 整合
+uv add byoa-core[all]    # 全部安裝
+```
+
+或使用 pip：
+
+```bash
+pip install byoa-core
+pip install byoa-core[all]
 ```
 
 ### 設定 API Key
@@ -354,7 +366,7 @@ agent_core/
 └── session/
     ├── base.py              # SessionBackend Protocol
     ├── memory_backend.py    # 記憶體 Session（預設）
-    └── redis_backend.py     # Redis Session
+    └── sqlite_backend.py    # SQLite Session
 ```
 
 ### 設計原則
@@ -366,7 +378,7 @@ agent_core/
 | `LLMProvider` | LLM API 介面 | `AnthropicProvider` |
 | `MCPClient` | MCP Server 通訊 | 使用者自行實作 |
 | `LockProvider` | 檔案操作鎖定 | 使用者自行實作 |
-| `SessionBackend` | 對話持久化 | `MemoryBackend`、`RedisBackend` |
+| `SessionBackend` | 對話持久化 | `MemoryBackend`、`SQLiteBackend` |
 
 ## API 端點
 

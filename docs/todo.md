@@ -120,11 +120,13 @@ API 呼叫失敗（429 rate limit、網路閃斷）很常見，目前一失敗�
 - [ ] 撰寫 `src/agent_core/README.md`（安裝、快速上手、API 概覽）
 - [ ] 撰寫詳細的專案架構文件（模組關係、擴展點、設計決策）
 
-### 6-4. 發佈為 pip 套件
+### 6-4. 發佈為 pip 套件 ✅
 
-- [ ] 檢查 `pyproject.toml`，確認 agent_core 的 package 設定
-- [ ] 分離 core / app 的 dependencies
-- [ ] 確認 `pip install` 可正常運作
+- [x] 檢查 `pyproject.toml`，確認 agent_core 的 package 設定
+- [x] 套件改名為 `byoa-core`（import 路徑保持 `agent_core`）
+- [x] 分離 core / app 的 dependencies（web、mcp 為 optional）
+- [x] 刪除 `session/redis_backend.py`（不再維護）
+- [x] 確認 `pip install` 可正常運作
 - [ ] （可選）發佈到 PyPI 或私有 registry
 
 ---
