@@ -25,7 +25,7 @@ from agent_core.providers.exceptions import (
 from agent_core.skills.base import Skill
 from agent_core.skills.registry import SkillRegistry
 from agent_core.tools.registry import ToolRegistry
-from agent_core.types import AgentEvent, ContentBlock, MessageParam
+from agent_core.types import AgentEvent, ContentBlock, MessageParam, StopReason, ToolDefinition
 
 # =============================================================================
 # Mock Helpers
@@ -34,7 +34,7 @@ from agent_core.types import AgentEvent, ContentBlock, MessageParam
 
 def _make_final_message(
     text: str = '回應內容',
-    stop_reason: str = 'end_turn',
+    stop_reason: StopReason = 'end_turn',
     content: list[ContentBlock] | None = None,
 ) -> FinalMessage:
     """建立 FinalMessage。"""
@@ -63,7 +63,7 @@ class MockProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> AsyncIterator[StreamResult]:
         """模擬串流回應。"""
@@ -95,7 +95,7 @@ class MockProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> int:
         return 0
@@ -124,7 +124,7 @@ class ErrorProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> AsyncIterator[StreamResult]:
         raise self._error
@@ -147,7 +147,7 @@ class PartialStreamProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> AsyncIterator[StreamResult]:
         async def _text_stream() -> AsyncIterator[str]:

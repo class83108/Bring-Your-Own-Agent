@@ -15,6 +15,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from agent_core.types import ToolDefinition
+
 logger = logging.getLogger(__name__)
 
 
@@ -146,20 +148,21 @@ class ToolRegistry:
             for t in self._tools.values()
         ]
 
-    def get_tool_definitions(self) -> list[dict[str, Any]]:
-        """取得 LLM API 格式的工具定義。
+    def get_tool_definitions(self) -> list[ToolDefinition]:
+        """取得標準格式的工具定義列表。
 
-        cache_control 等 provider 特定邏輯由 Provider 層處理。
+        回傳 provider-agnostic 的 ToolDefinition 格式。
+        各 Provider 負責將此格式轉換為 vendor 特定格式。
 
         Returns:
             工具定義列表
         """
         return [
-            {
-                'name': tool.name,
-                'description': tool.description,
-                'input_schema': tool.parameters,
-            }
+            ToolDefinition(
+                name=tool.name,
+                description=tool.description,
+                input_schema=tool.parameters,
+            )
             for tool in self._tools.values()
         ]
 

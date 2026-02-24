@@ -52,3 +52,38 @@ Feature: LLM Provider 抽象層
       Given enable_prompt_caching 為 False
       When Provider 建立 API 請求
       Then 不應包含任何 cache_control
+
+  Rule: Provider 應使用標準化的 StopReason
+
+    Scenario: end_turn 停止原因
+      Given 已建立 AnthropicProvider
+      When LLM 回應正常結束
+      Then FinalMessage 的 stop_reason 應為 "end_turn"
+
+    Scenario: tool_use 停止原因
+      Given 已建立 AnthropicProvider
+      When LLM 回應包含工具調用
+      Then FinalMessage 的 stop_reason 應為 "tool_use"
+
+    Scenario: max_tokens 停止原因
+      Given 已建立 AnthropicProvider
+      When LLM 回應因 token 上限而截斷
+      Then FinalMessage 的 stop_reason 應為 "max_tokens"
+
+    Scenario: 未知 stop_reason 應回退為 end_turn
+      Given 已建立 AnthropicProvider
+      When LLM 回應的 stop_reason 為 None 或未知值
+      Then FinalMessage 的 stop_reason 應回退為 "end_turn"
+
+  Rule: 工具定義應使用標準化的 ToolDefinition 格式
+
+    Scenario: ToolRegistry 輸出標準 ToolDefinition
+      Given Tool Registry 包含已註冊的工具
+      When 呼叫 get_tool_definitions
+      Then 回傳的每個工具定義應包含 name、description、input_schema
+
+    Scenario: Provider 接受標準 ToolDefinition 格式
+      Given 已建立 AnthropicProvider
+      And 有標準格式的 ToolDefinition
+      When 透過 Provider 建立 API 請求
+      Then 工具定義應被正確傳遞至 vendor API

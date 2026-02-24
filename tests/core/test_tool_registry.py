@@ -214,6 +214,68 @@ class TestToolSummaries:
         assert summaries[0]['source'] == 'mcp'
 
 
+@allure.feature('LLM Provider 抽象層')
+@allure.story('工具定義應使用標準化的 ToolDefinition 格式')
+class TestToolDefinitionFormat:
+    """Rule: 工具定義應使用標準化的 ToolDefinition 格式。"""
+
+    @allure.title('ToolRegistry 輸出標準 ToolDefinition 格式')
+    def test_get_tool_definitions_returns_tool_definition(self, registry: Any) -> None:
+        """Scenario: ToolRegistry 輸出標準 ToolDefinition。
+
+        Given Tool Registry 包含已註冊的工具
+        When 呼叫 get_tool_definitions
+        Then 回傳的每個工具定義應包含 name、description、input_schema
+        """
+        registry.register(
+            name='read_file',
+            description='讀取檔案內容',
+            parameters={
+                'type': 'object',
+                'properties': {'path': {'type': 'string'}},
+                'required': ['path'],
+            },
+            handler=sample_read_file,
+        )
+
+        definitions = registry.get_tool_definitions()
+
+        assert len(definitions) == 1
+        defn = definitions[0]
+        # 驗證包含必要欄位
+        assert defn['name'] == 'read_file'
+        assert defn['description'] == '讀取檔案內容'
+        assert defn['input_schema'] == {
+            'type': 'object',
+            'properties': {'path': {'type': 'string'}},
+            'required': ['path'],
+        }
+
+    @allure.title('多個工具應全部回傳 ToolDefinition 格式')
+    def test_multiple_tools_all_return_tool_definition(self, registry: Any) -> None:
+        """多個工具註冊後應全部回傳標準 ToolDefinition 格式。"""
+        registry.register(
+            name='tool_a',
+            description='工具 A',
+            parameters={'type': 'object', 'properties': {}},
+            handler=sample_read_file,
+        )
+        registry.register(
+            name='tool_b',
+            description='工具 B',
+            parameters={'type': 'object', 'properties': {}},
+            handler=sample_search_tool,
+        )
+
+        definitions = registry.get_tool_definitions()
+
+        assert len(definitions) == 2
+        for defn in definitions:
+            assert 'name' in defn
+            assert 'description' in defn
+            assert 'input_schema' in defn
+
+
 @allure.feature('Agent 核心架構')
 @allure.story('並行執行應避免檔案競爭')
 class TestFileLocking:

@@ -29,7 +29,7 @@ from agent_core.multimodal import (
     validate_attachment,
 )
 from agent_core.providers.base import FinalMessage, StreamResult, UsageInfo
-from agent_core.types import MessageParam
+from agent_core.types import MessageParam, StopReason, ToolDefinition
 
 # --- Mock Helpers ---
 
@@ -47,7 +47,7 @@ TINY_PDF_B64 = base64.b64encode(b'%PDF-1.0 minimal').decode()
 
 def _make_final_message(
     text: str = '回應內容',
-    stop_reason: str = 'end_turn',
+    stop_reason: StopReason = 'end_turn',
 ) -> FinalMessage:
     return FinalMessage(
         content=[{'type': 'text', 'text': text}],
@@ -69,7 +69,7 @@ class MockProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> AsyncIterator[StreamResult]:
         self.call_args_list.append({'messages': messages})
@@ -90,7 +90,7 @@ class MockProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> int:
         return 0

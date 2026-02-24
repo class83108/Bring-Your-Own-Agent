@@ -57,6 +57,37 @@ ContentBlock = TextBlock | ToolUseBlock | ToolResultBlock | ImageBlock | Documen
 """所有內容區塊型別的聯合型別。"""
 
 
+# --- Stop Reason ---
+
+StopReason = Literal['end_turn', 'tool_use', 'max_tokens']
+"""標準化的停止原因型別。
+
+各 Provider 負責將 vendor 特定值映射為此型別：
+- end_turn: 正常結束回應
+- tool_use: 需要執行工具調用
+- max_tokens: 達到 token 上限而截斷
+"""
+
+
+# --- Tool Definition ---
+
+
+class ToolDefinition(TypedDict):
+    """標準化的工具定義格式。
+
+    Provider-agnostic 的工具描述，各 Provider 負責轉換為 vendor 格式。
+
+    Attributes:
+        name: 工具名稱
+        description: 工具描述
+        input_schema: JSON Schema 格式的參數定義
+    """
+
+    name: str
+    description: str
+    input_schema: dict[str, Any]
+
+
 # --- Message ---
 
 

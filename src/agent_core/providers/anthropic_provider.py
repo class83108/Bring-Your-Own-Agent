@@ -25,9 +25,20 @@ from agent_core.providers.exceptions import (
     ProviderRateLimitError,
     ProviderTimeoutError,
 )
-from agent_core.types import ContentBlock, MessageParam
+from agent_core.types import ContentBlock, MessageParam, StopReason, ToolDefinition
 
 logger = logging.getLogger(__name__)
+
+
+# Anthropic stop_reason 到標準 StopReason 的映射
+_ANTHROPIC_STOP_REASON_MAP: dict[str, StopReason] = {
+    'end_turn': 'end_turn',
+    'tool_use': 'tool_use',
+    'max_tokens': 'max_tokens',
+}
+
+# 預設的 StopReason（當 vendor 回傳 None 或未知值時使用）
+_DEFAULT_STOP_REASON: StopReason = 'end_turn'
 
 
 class AnthropicProvider:
@@ -93,7 +104,7 @@ class AnthropicProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int | None = None,
     ) -> dict[str, Any]:
         """建立 Anthropic messages.stream() 的參數。
@@ -136,8 +147,9 @@ class AnthropicProvider:
             kwargs['system'] = system
 
         # 處理工具定義（含 cache_control）
+        # shallow copy 轉為 vendor 格式（plain dict），以便加入 Anthropic 特有的 cache_control
         if tools:
-            tool_defs = copy.deepcopy(tools)
+            tool_defs: list[dict[str, Any]] = [dict(t) for t in tools]
             if self._config.enable_prompt_caching and tool_defs:
                 tool_defs[-1]['cache_control'] = {'type': 'ephemeral'}
             kwargs['tools'] = tool_defs
@@ -208,9 +220,13 @@ class AnthropicProvider:
             or 0,
             cache_read_input_tokens=getattr(raw_msg.usage, 'cache_read_input_tokens', 0) or 0,
         )
+        # 將 vendor stop_reason 映射為標準 StopReason
+        stop_reason = _ANTHROPIC_STOP_REASON_MAP.get(
+            raw_msg.stop_reason or '', _DEFAULT_STOP_REASON
+        )
         return FinalMessage(
             content=content,
-            stop_reason=raw_msg.stop_reason or 'end_turn',
+            stop_reason=stop_reason,
             usage=usage,
         )
 
@@ -288,7 +304,7 @@ class AnthropicProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
         on_retry: Callable[[int, Exception, float], None] | None = None,
     ) -> AsyncIterator[StreamResult]:
@@ -346,7 +362,7 @@ class AnthropicProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> int:
         """計算給定訊息的 token 數量，支援自動重試。

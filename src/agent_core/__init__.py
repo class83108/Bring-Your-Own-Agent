@@ -8,6 +8,7 @@ from agent_core.providers import AnthropicProvider
 from agent_core.skills.base import Skill
 from agent_core.skills.registry import SkillRegistry
 from agent_core.tools.registry import ToolRegistry
+from agent_core.types import StopReason, ToolDefinition
 
 __all__ = [
     'Agent',
@@ -16,5 +17,7 @@ __all__ = [
     'ProviderConfig',
     'Skill',
     'SkillRegistry',
+    'StopReason',
+    'ToolDefinition',
     'ToolRegistry',
 ]
