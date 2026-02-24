@@ -16,9 +16,21 @@ logger = logging.getLogger(__name__)
 
 # 各模型的 context window 大小（tokens）
 MODEL_CONTEXT_WINDOWS: dict[str, int] = {
+    # Anthropic 模型
     'claude-sonnet-4-20250514': 200_000,
     'claude-haiku-4-20250514': 200_000,
     'claude-opus-4-20250514': 200_000,
+    # OpenAI 模型
+    'gpt-4o': 128_000,
+    'gpt-4o-mini': 128_000,
+    'gpt-4.1': 1_000_000,
+    'gpt-4.1-mini': 1_000_000,
+    'gpt-4.1-nano': 1_000_000,
+    'o1': 200_000,
+    'o1-mini': 128_000,
+    'o3': 200_000,
+    'o3-mini': 200_000,
+    'o4-mini': 200_000,
 }
 
 # 找不到模型時的預設 context window

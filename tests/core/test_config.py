@@ -82,6 +82,33 @@ class TestCustomConfig:
             provider_config = ProviderConfig()
             assert provider_config.get_api_key() is None
 
+    @allure.title('OpenAI provider 應讀取 OPENAI_API_KEY')
+    def test_openai_api_key_from_env(self) -> None:
+        """Scenario: OpenAI provider 讀取 OPENAI_API_KEY。"""
+        from agent_core.config import ProviderConfig
+
+        with patch.dict(os.environ, {'OPENAI_API_KEY': 'sk-openai-test'}, clear=True):
+            config = ProviderConfig(provider_type='openai')
+            assert config.get_api_key() == 'sk-openai-test'
+
+    @allure.title('Anthropic provider 改版後仍讀取 ANTHROPIC_API_KEY')
+    def test_anthropic_still_reads_anthropic_key(self) -> None:
+        """回歸測試：provider-aware 改版不影響 Anthropic。"""
+        from agent_core.config import ProviderConfig
+
+        with patch.dict(os.environ, {'ANTHROPIC_API_KEY': 'sk-ant-test'}, clear=True):
+            config = ProviderConfig(provider_type='anthropic')
+            assert config.get_api_key() == 'sk-ant-test'
+
+    @allure.title('未知 provider_type 應自動推導環境變數名稱')
+    def test_unknown_provider_auto_derives_env_var(self) -> None:
+        """未知 provider_type 應以 {TYPE}_API_KEY 推導。"""
+        from agent_core.config import ProviderConfig
+
+        with patch.dict(os.environ, {'GEMINI_API_KEY': 'sk-gemini'}, clear=True):
+            config = ProviderConfig(provider_type='gemini')
+            assert config.get_api_key() == 'sk-gemini'
+
 
 @allure.feature('Agent 配置系統')
 @allure.story('應支援配置 System Prompt')

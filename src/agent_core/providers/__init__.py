@@ -9,16 +9,20 @@ from agent_core.providers.exceptions import (
     ProviderAuthError,
     ProviderConnectionError,
     ProviderError,
+    ProviderRateLimitError,
     ProviderTimeoutError,
 )
+from agent_core.providers.openai_provider import OpenAIProvider
 
 __all__ = [
     'AnthropicProvider',
     'FinalMessage',
     'LLMProvider',
+    'OpenAIProvider',
     'ProviderAuthError',
     'ProviderConnectionError',
     'ProviderError',
+    'ProviderRateLimitError',
     'ProviderTimeoutError',
     'StreamResult',
     'UsageInfo',
