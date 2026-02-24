@@ -26,6 +26,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+openai = ["openai>=2.22.0", "tiktoken>=0.12.0"]
 web = [
     "beautifulsoup4>=4.14.3",
     "httpx>=0.28.1",
@@ -33,7 +34,7 @@ web = [
 ]
 mcp = ["mcp>=1.0.0"]
 all = [
-    "byoa-core[web,mcp]",
+    "byoa-core[web,mcp,openai]",
 ]
 
 [project.urls]
@@ -55,6 +56,8 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.14.14",
     "allure-pytest>=2.15.3",
+    "openai>=2.22.0",
+    "tiktoken>=0.12.0",
 ]
 
 # Ruff 配置

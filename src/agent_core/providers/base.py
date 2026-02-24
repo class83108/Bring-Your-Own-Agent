@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
-from agent_core.types import ContentBlock, MessageParam
+from agent_core.types import ContentBlock, MessageParam, StopReason, ToolDefinition
 
 
 @dataclass
@@ -33,7 +33,7 @@ class FinalMessage:
     """
 
     content: list[ContentBlock]
-    stop_reason: str
+    stop_reason: StopReason
     usage: UsageInfo | None = None
 
 
@@ -67,7 +67,7 @@ class LLMProvider(Protocol):
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> Any:
         """建立串流回應的 async context manager。
@@ -87,7 +87,7 @@ class LLMProvider(Protocol):
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> int:
         """計算給定訊息的 token 數量。

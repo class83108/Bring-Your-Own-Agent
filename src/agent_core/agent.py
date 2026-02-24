@@ -31,6 +31,7 @@ from agent_core.types import (
     CompactResult,
     ContentBlock,
     MessageParam,
+    ToolDefinition,
     ToolResultBlock,
     ToolUseBlock,
 )
@@ -181,7 +182,7 @@ class Agent:
         """判斷回應是否包含工具調用。"""
         return final_message.stop_reason == 'tool_use' and self.tool_registry is not None
 
-    def _get_tool_definitions(self) -> list[dict[str, Any]] | None:
+    def _get_tool_definitions(self) -> list[ToolDefinition] | None:
         """取得工具定義列表。"""
         if self.tool_registry:
             return self.tool_registry.get_tool_definitions()

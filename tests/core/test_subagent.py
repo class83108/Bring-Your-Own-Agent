@@ -21,7 +21,7 @@ from agent_core.config import AgentCoreConfig, ProviderConfig
 from agent_core.providers.base import FinalMessage, StreamResult, UsageInfo
 from agent_core.tools.registry import ToolRegistry
 from agent_core.tools.subagent import create_subagent_handler
-from agent_core.types import ContentBlock, MessageParam
+from agent_core.types import ContentBlock, MessageParam, StopReason, ToolDefinition
 
 # =============================================================================
 # Mock Helpers
@@ -30,7 +30,7 @@ from agent_core.types import ContentBlock, MessageParam
 
 def _make_final_message(
     text: str = '回應內容',
-    stop_reason: str = 'end_turn',
+    stop_reason: StopReason = 'end_turn',
     content: list[ContentBlock] | None = None,
 ) -> FinalMessage:
     """建立 FinalMessage。"""
@@ -56,7 +56,7 @@ class MockProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> AsyncIterator[StreamResult]:
         """模擬串流回應。"""
@@ -87,7 +87,7 @@ class MockProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> int:
         """模擬 token 計數。"""

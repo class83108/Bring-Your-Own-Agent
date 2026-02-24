@@ -50,12 +50,19 @@ DEFAULT_SYSTEM_PROMPT = """\
 請使用繁體中文回答。"""
 
 
+# Provider 類型對應的環境變數名稱
+_PROVIDER_API_KEY_ENV: dict[str, str] = {
+    'anthropic': 'ANTHROPIC_API_KEY',
+    'openai': 'OPENAI_API_KEY',
+}
+
+
 @dataclass
 class ProviderConfig:
     """LLM Provider 配置。
 
     Attributes:
-        provider_type: Provider 類型識別（例如 "anthropic"）
+        provider_type: Provider 類型識別（例如 "anthropic", "openai"）
         model: 模型名稱
         api_key: API 金鑰（可選，未指定時從環境變數讀取）
         max_tokens: 最大回應 token 數
@@ -73,14 +80,22 @@ class ProviderConfig:
     retry_initial_delay: float = 1.0
 
     def get_api_key(self) -> str | None:
-        """取得 API Key，優先使用明確指定的值，否則從環境變數讀取。
+        """取得 API Key，優先使用明確指定的值，否則根據 provider_type 從環境變數讀取。
+
+        支援的環境變數映射：
+        - anthropic → ANTHROPIC_API_KEY
+        - openai → OPENAI_API_KEY
+        - 其他 → {PROVIDER_TYPE}_API_KEY（自動推導）
 
         Returns:
             API Key 字串，若無可用 Key 則回傳 None
         """
         if self.api_key is not None:
             return self.api_key
-        return os.environ.get('ANTHROPIC_API_KEY')
+        env_var = _PROVIDER_API_KEY_ENV.get(
+            self.provider_type, f'{self.provider_type.upper()}_API_KEY'
+        )
+        return os.environ.get(env_var)
 
 
 @dataclass

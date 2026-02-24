@@ -19,7 +19,7 @@ from agent_core.config import AgentCoreConfig, ProviderConfig
 from agent_core.event_store import EventStore, MemoryEventStore
 from agent_core.event_store.base import StreamEvent
 from agent_core.providers.base import FinalMessage, StreamResult, UsageInfo
-from agent_core.types import AgentEvent, ContentBlock, MessageParam
+from agent_core.types import AgentEvent, ContentBlock, MessageParam, StopReason, ToolDefinition
 
 # =============================================================================
 # Mock Helpers
@@ -28,7 +28,7 @@ from agent_core.types import AgentEvent, ContentBlock, MessageParam
 
 def _make_final_message(
     text: str = '回應內容',
-    stop_reason: str = 'end_turn',
+    stop_reason: StopReason = 'end_turn',
     content: list[ContentBlock] | None = None,
 ) -> FinalMessage:
     """建立 FinalMessage。"""
@@ -53,7 +53,7 @@ class MockProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> AsyncIterator[StreamResult]:
         text_chunks, final_msg = self._responses[self._call_count]
@@ -75,7 +75,7 @@ class MockProvider:
         self,
         messages: list[MessageParam],
         system: str,
-        tools: list[dict[str, Any]] | None = None,
+        tools: list[ToolDefinition] | None = None,
         max_tokens: int = 8192,
     ) -> int:
         return 0

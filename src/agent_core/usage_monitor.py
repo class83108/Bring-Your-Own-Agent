@@ -32,6 +32,67 @@ MODEL_PRICING: dict[str, dict[str, float]] = {
         'cache_write': 18.75,
         'cache_read': 1.50,
     },
+    # OpenAI 模型（cache_write 為 0，OpenAI 快取是自動的無寫入成本）
+    'gpt-4o': {
+        'input': 2.50,
+        'output': 10.0,
+        'cache_write': 0.0,
+        'cache_read': 1.25,
+    },
+    'gpt-4o-mini': {
+        'input': 0.15,
+        'output': 0.60,
+        'cache_write': 0.0,
+        'cache_read': 0.075,
+    },
+    'gpt-4.1': {
+        'input': 2.0,
+        'output': 8.0,
+        'cache_write': 0.0,
+        'cache_read': 0.50,
+    },
+    'gpt-4.1-mini': {
+        'input': 0.40,
+        'output': 1.60,
+        'cache_write': 0.0,
+        'cache_read': 0.10,
+    },
+    'gpt-4.1-nano': {
+        'input': 0.10,
+        'output': 0.40,
+        'cache_write': 0.0,
+        'cache_read': 0.025,
+    },
+    'o1': {
+        'input': 15.0,
+        'output': 60.0,
+        'cache_write': 0.0,
+        'cache_read': 7.50,
+    },
+    'o1-mini': {
+        'input': 1.10,
+        'output': 4.40,
+        'cache_write': 0.0,
+        'cache_read': 0.55,
+    },
+    'o3': {
+        'input': 2.0,
+        'output': 8.0,
+        'cache_write': 0.0,
+        'cache_read': 0.50,
+    },
+    'o3-mini': {
+        'input': 1.10,
+        'output': 4.40,
+        'cache_write': 0.0,
+        'cache_read': 0.55,
+    },
+    'o4-mini': {
+        'input': 1.10,
+        'output': 4.40,
+        'cache_write': 0.0,
+        'cache_read': 0.275,
+    },
 }
 
 # 找不到模型時的預設定價
