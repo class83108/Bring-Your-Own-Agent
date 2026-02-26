@@ -36,6 +36,9 @@ mcp = ["mcp>=1.0.0"]
 all = [
     "byoa-core[web,mcp,openai]",
 ]
+gemini = [
+    "google-genai>=1.0.0",
+]
 
 [project.urls]
 Repository = "https://github.com/class83108/Bring-Your-Own-Agent"
@@ -82,7 +85,7 @@ exclude = ["**/__pycache__", ".venv"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
-addopts = ["-v", "--cov=src/agent_core", "--cov=src/agent_app", "--cov-report=term-missing", "--cov-report=xml"]
+addopts = ["-v", "--cov=src/agent_core", "--cov=src/apps", "--cov-report=term-missing", "--cov-report=xml"]
 asyncio_mode = "auto"
 markers = [
     "smoke: 手動 smoke test，需要真實 API（使用 --run-smoke 執行）",
@@ -91,7 +94,7 @@ markers = [
 
 # Coverage 配置
 [tool.coverage.run]
-source = ["src/agent_core", "src/agent_app"]
+source = ["src/agent_core", "src/apps"]
 branch = true
 
 [tool.coverage.report]
