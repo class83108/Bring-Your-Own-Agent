@@ -12,11 +12,13 @@ from agent_core.providers.exceptions import (
     ProviderRateLimitError,
     ProviderTimeoutError,
 )
+from agent_core.providers.gemini_provider import GeminiProvider
 from agent_core.providers.openai_provider import OpenAIProvider
 
 __all__ = [
     'AnthropicProvider',
     'FinalMessage',
+    'GeminiProvider',
     'LLMProvider',
     'OpenAIProvider',
     'ProviderAuthError',

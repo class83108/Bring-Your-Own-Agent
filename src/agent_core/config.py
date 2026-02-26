@@ -54,6 +54,7 @@ DEFAULT_SYSTEM_PROMPT = """\
 _PROVIDER_API_KEY_ENV: dict[str, str] = {
     'anthropic': 'ANTHROPIC_API_KEY',
     'openai': 'OPENAI_API_KEY',
+    'gemini': 'GEMINI_API_KEY',
 }
 
 
