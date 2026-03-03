@@ -12,12 +12,25 @@ from agent_core.providers.exceptions import (
     ProviderRateLimitError,
     ProviderTimeoutError,
 )
+from agent_core.providers.gateway_middleware import (
+    BudgetGuard,
+    CostTracker,
+    GatewayMiddleware,
+    RateLimiter,
+    RequestContext,
+    RequestTracer,
+)
+from agent_core.providers.gateway_provider import GatewayProvider
 from agent_core.providers.gemini_provider import GeminiProvider
 from agent_core.providers.openai_provider import OpenAIProvider
 
 __all__ = [
     'AnthropicProvider',
+    'BudgetGuard',
+    'CostTracker',
     'FinalMessage',
+    'GatewayMiddleware',
+    'GatewayProvider',
     'GeminiProvider',
     'LLMProvider',
     'OpenAIProvider',
@@ -26,6 +39,9 @@ __all__ = [
     'ProviderError',
     'ProviderRateLimitError',
     'ProviderTimeoutError',
+    'RateLimiter',
+    'RequestContext',
+    'RequestTracer',
     'StreamResult',
     'UsageInfo',
 ]
