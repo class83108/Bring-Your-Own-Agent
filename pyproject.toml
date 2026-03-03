@@ -61,6 +61,7 @@ dev = [
     "allure-pytest>=2.15.3",
     "openai>=2.22.0",
     "tiktoken>=0.12.0",
+    "google-genai>=1.0.0",
 ]
 
 # Ruff 配置
